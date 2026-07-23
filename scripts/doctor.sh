@@ -19,6 +19,7 @@ require_command uv "Install uv 0.11 or newer."
 require_command node "Install Node.js 24 or newer."
 require_command npm "Install npm with Node.js."
 require_command make "Install GNU Make."
+require_command git "Install Git."
 require_command curl "Install curl."
 require_command docker "Install Docker Engine or Docker Desktop."
 
