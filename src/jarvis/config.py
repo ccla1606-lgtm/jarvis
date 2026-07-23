@@ -23,6 +23,10 @@ class Settings(BaseSettings):
         default="postgresql://jarvis:jarvis@localhost:5432/jarvis",
         min_length=1,
     )
+    database_schema: str = Field(
+        default="public",
+        pattern=r"^[a-z_][a-z0-9_]*$",
+    )
     database_connect_timeout_seconds: int = Field(default=2, ge=1, le=30)
 
 

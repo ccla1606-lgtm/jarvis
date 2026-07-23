@@ -52,24 +52,33 @@ This runs:
 
 - Ruff formatting and lint;
 - strict mypy on production Python;
-- Python unit tests with branch coverage;
+- Python unit tests;
 - React/TypeScript lint;
 - web unit tests;
 - production web build;
-- real PostgreSQL readiness integration.
+- real PostgreSQL repository, migration, concurrency, and restart integration;
+- branch coverage across the complete Python suite.
 
 The integration test expects:
 
-    JARVIS_TEST_DATABASE_URL=postgresql://jarvis:jarvis@localhost:5432/jarvis_test
+    JARVIS_TEST_DATABASE_URL=postgresql://jarvis:jarvis@localhost:5432/jarvis
 
-The Makefile supplies this value through TEST_DATABASE_URL. The default local
-PostgreSQL container creates the main jarvis database, while CI creates
-jarvis_test explicitly. For a local full verification, either set
-TEST_DATABASE_URL to the running jarvis database or create jarvis_test.
+The Makefile supplies the local database through TEST_DATABASE_URL. CI overrides
+it with its isolated jarvis_test database. Integration tests create and remove
+their own uniquely named schemas; they never reset the configured public schema.
 
 Example:
 
     make verify TEST_DATABASE_URL=postgresql://jarvis:jarvis@localhost:5432/jarvis
+
+## Database migrations
+
+    make migrate
+
+Migrations are immutable SQL files packaged with the application. Startup applies
+them under a PostgreSQL advisory lock, records their checksums, and refuses to run
+if an already-applied migration was edited. Create a new numbered migration for
+every schema change.
 
 ## Disposable demo
 
@@ -88,7 +97,7 @@ If port 5432 is occupied, set another host port for development:
 
     POSTGRES_PORT=55432 make bootstrap
 
-When doing so, also set TEST_DATABASE_URL to the same host port for verification.
+When doing so, also set DATABASE_URL and TEST_DATABASE_URL to the same host port.
 
 No paid model credentials are used in M0. Do not add secrets to .env.example,
 tests, logs, or Git.
