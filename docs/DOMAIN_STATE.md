@@ -11,7 +11,8 @@ The canonical entities are:
 
 - `Task`: user objective, lifecycle, and optimistic version;
 - `TaskTransition`: immutable evidence for one accepted lifecycle edge;
-- `Plan`: immutable numbered steps and version;
+- `Plan`: immutable numbered steps, dependencies, approved tool/repository
+  scope, and version;
 - `Approval`: explicit actor decision bound to one plan ID and version;
 - `Run`: one execution attempt with a link to the previous attempt;
 - `Artifact`, `ModelResolution`, and `TraceLink`: immutable evidence metadata.
@@ -54,6 +55,8 @@ No failed update appends transition history.
 
 Plan approval locks the plan row and validates task ID, plan ID, and plan version
 before recording the decision. A decision for version N cannot authorize N+1.
+Plan construction rejects missing dependencies, cycles, duplicate scope entries,
+and non-consecutive positions before persistence.
 
 A retry inserts a new `Run` with an incremented attempt and
 `previous_run_id`. Previous attempts and evidence are never overwritten.

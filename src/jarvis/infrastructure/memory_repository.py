@@ -107,6 +107,18 @@ class InMemoryTaskRepository:
             except KeyError as error:
                 raise EntityNotFoundError("Plan", str(plan_id)) from error
 
+    def get_plan_for_task(self, task_id: TaskId, *, version: int) -> Plan | None:
+        with self._lock:
+            self._require_task(task_id)
+            return next(
+                (
+                    plan
+                    for plan in self._plans.values()
+                    if plan.task_id == task_id and plan.version == version
+                ),
+                None,
+            )
+
     def record_approval(self, approval: Approval) -> Approval:
         with self._lock:
             plan = self._plans.get(approval.plan_id)

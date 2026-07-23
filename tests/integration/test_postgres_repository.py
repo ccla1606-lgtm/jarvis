@@ -146,10 +146,20 @@ def test_plan_approval_is_version_bound_and_persisted(
         Plan.propose(
             task_id=task.id,
             version=2,
-            steps=(PlanStep(1, "Implement"), PlanStep(2, "Verify")),
+            steps=(
+                PlanStep(1, "Implement", repositories=("owner/repo",)),
+                PlanStep(
+                    2,
+                    "Verify",
+                    depends_on=(1,),
+                    tools=("test",),
+                    repositories=("owner/repo",),
+                ),
+            ),
             now=NOW,
         )
     )
+    assert postgres_repository.get_plan_for_task(task.id, version=2) == plan
     stale = Approval.record(
         task_id=task.id,
         plan_id=plan.id,
