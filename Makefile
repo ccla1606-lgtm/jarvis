@@ -10,7 +10,7 @@ DATABASE_SCHEMA ?= public
 TEST_DATABASE_URL ?= $(DATABASE_URL)
 
 .PHONY: help doctor bootstrap dev stop verify verify-python verify-web \
-	verify-integration migrate demo clean
+	verify-integration migrate demo smoke-models clean
 
 help: ## List available commands.
 	@awk 'BEGIN {FS = ":.*## "; printf "Jarvis commands:\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -55,6 +55,9 @@ migrate: ## Apply pending canonical PostgreSQL migrations.
 
 demo: ## Build, run, and verify one complete disposable local stack.
 	@bash ./scripts/demo.sh
+
+smoke-models: ## Make one credential-backed call to OpenAI and DeepSeek.
+	$(UV) run python -m jarvis.models.live_smoke
 
 clean: ## Remove generated local build and test output.
 	rm -rf .coverage .mypy_cache .pytest_cache .ruff_cache htmlcov

@@ -101,6 +101,7 @@ troubleshooting.
 - [Test strategy](docs/TEST_STRATEGY.md)
 - [Architecture decisions](docs/DECISIONS.md)
 - [Domain state and persistence](docs/DOMAIN_STATE.md)
+- [Model gateway](docs/MODEL_GATEWAY.md)
 - [Agent instructions](AGENTS.md)
 
 ## Delivery policy
