@@ -68,7 +68,7 @@ runs in isolated worker processes.
         /     |      \
     Models  Context  CodingExecutor
       |       |          |
-    LiteLLM  Store    Agent Host process
+    Gateway  Store    Agent Host process
       |                  |
     GPT / DeepSeek      OMP CLI
 
@@ -329,4 +329,3 @@ MVP Docker Compose services:
 
 Redis, queues, and additional workers are introduced only after measured
 concurrency or reliability requirements justify them.
-
