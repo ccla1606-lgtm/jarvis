@@ -202,6 +202,7 @@ class TaskService:
         previous = self._repository.get_run(run_id)
         if previous.task_id != task_id:
             raise EntityNotFoundError("Run", str(run_id))
+        retry = previous.retry()
         current = self._repository.get_task(task_id)
         task = (
             current
@@ -213,4 +214,4 @@ class TaskService:
                 reason=reason,
             )
         )
-        return RetryResult(task, self.retry_run(run_id))
+        return RetryResult(task, self._repository.create_run(retry))

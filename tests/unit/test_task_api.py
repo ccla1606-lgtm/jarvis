@@ -273,6 +273,30 @@ def test_retry_preserves_failed_attempt_and_links_new_attempt() -> None:
     assert str(runs[1].id) == response.json()["run_id"]
 
 
+def test_invalid_retry_does_not_move_task_or_create_attempt() -> None:
+    client, repository = build_client()
+    service = TaskService(repository)
+    task = service.submit("Do not retry", idempotency_key="invalid-retry")
+    failed_task = service.transition(
+        task.id,
+        TaskStatus.FAILED,
+        actor="runner",
+        reason="task failed before run status update",
+    )
+    active = repository.create_run(Run.queue(task_id=task.id))
+
+    response = client.post(
+        f"/v1/tasks/{task.id}/retry",
+        headers=AUTH,
+        json={"run_id": str(active.id), "reason": "invalid retry"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "INVALID_RETRY"
+    assert repository.get_task(task.id) == failed_task
+    assert repository.list_runs(task.id) == (active,)
+
+
 def test_invalid_transition_is_classified_without_partial_approval() -> None:
     client, repository = build_client()
     service = TaskService(repository)
