@@ -7,6 +7,7 @@
 - Node.js 24 or newer
 - npm 11 or newer
 - GNU Make
+- Git
 - Docker Engine with Docker Compose v2
 - curl
 
@@ -22,7 +23,8 @@ supported through WSL2 with Docker Desktop integration.
     make demo
 
 make bootstrap installs locked Python and web dependencies and starts
-PostgreSQL plus the OpenTelemetry Collector.
+PostgreSQL plus the OpenTelemetry Collector. It also installs the repository's
+pre-commit quality hook. An existing custom hook is never overwritten.
 
 ## Start the complete stack
 
@@ -90,4 +92,3 @@ When doing so, also set TEST_DATABASE_URL to the same host port for verification
 
 No paid model credentials are used in M0. Do not add secrets to .env.example,
 tests, logs, or Git.
-
