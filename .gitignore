@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.coverage
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+apps/web/node_modules/
+apps/web/dist/
+apps/web/coverage/
+apps/web/*.tsbuildinfo
+
+# Environment and IDE
+.env
+.idea/
+.vscode/
+.DS_Store
+
+# Runtime
+artifacts/
+*.log
+
