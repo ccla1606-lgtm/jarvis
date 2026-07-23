@@ -19,6 +19,7 @@ doctor: ## Check required local tools and configuration without changing the sys
 bootstrap: doctor ## Install dependencies and start development infrastructure.
 	$(UV) sync --frozen
 	$(NPM) ci --prefix $(WEB_DIR)
+	@bash ./scripts/install_git_hooks.sh
 	$(COMPOSE) up -d --wait postgres otel-collector
 	@JARVIS_TEST_DATABASE_URL="$(TEST_DATABASE_URL)" $(UV) run python scripts/check_postgres.py
 
