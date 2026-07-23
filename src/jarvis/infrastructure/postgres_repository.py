@@ -217,7 +217,14 @@ class PostgresTaskRepository:
 
     def create_plan(self, plan: Plan) -> Plan:
         steps = [
-            {"position": step.position, "description": step.description} for step in plan.steps
+            {
+                "position": step.position,
+                "description": step.description,
+                "depends_on": list(step.depends_on),
+                "tools": list(step.tools),
+                "repositories": list(step.repositories),
+            }
+            for step in plan.steps
         ]
         with self._connection() as connection:
             connection.execute(
@@ -249,6 +256,20 @@ class PostgresTaskRepository:
         if row is None:
             raise EntityNotFoundError("Plan", str(plan_id))
         return _plan_from_row(row)
+
+    def get_plan_for_task(self, task_id: TaskId, *, version: int) -> Plan | None:
+        if version < 1:
+            raise ValueError("plan version must be positive")
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT id, task_id, version, status, steps, created_at
+                FROM plans
+                WHERE task_id = %s AND version = %s
+                """,
+                (task_id, version),
+            ).fetchone()
+        return _plan_from_row(row) if row is not None else None
 
     def record_approval(self, approval: Approval) -> Approval:
         with self._connection() as connection:
@@ -496,6 +517,9 @@ def _plan_from_row(row: Row) -> Plan:
             PlanStep(
                 position=cast(int, step["position"]),
                 description=cast(str, step["description"]),
+                depends_on=tuple(cast(list[int], step.get("depends_on", []))),
+                tools=tuple(cast(list[str], step.get("tools", []))),
+                repositories=tuple(cast(list[str], step.get("repositories", []))),
             )
             for step in raw_steps
         ),

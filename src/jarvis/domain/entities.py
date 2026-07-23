@@ -45,12 +45,27 @@ class RunStatus(StrEnum):
 class PlanStep:
     position: int
     description: str
+    depends_on: tuple[int, ...] = ()
+    tools: tuple[str, ...] = ()
+    repositories: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.position < 1:
             raise ValueError("plan step position must be positive")
         if not self.description.strip():
             raise ValueError("plan step description must not be empty")
+        if any(dependency < 1 for dependency in self.depends_on):
+            raise ValueError("plan dependencies must be positive")
+        if self.position in self.depends_on:
+            raise ValueError("plan step cannot depend on itself")
+        if len(set(self.depends_on)) != len(self.depends_on):
+            raise ValueError("plan dependencies must be unique")
+        if any(not value.strip() for value in (*self.tools, *self.repositories)):
+            raise ValueError("plan scope entries must not be empty")
+        if len(set(self.tools)) != len(self.tools) or len(set(self.repositories)) != len(
+            self.repositories
+        ):
+            raise ValueError("plan scope entries must be unique")
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +130,7 @@ class Plan:
         positions = tuple(step.position for step in self.steps)
         if positions != tuple(range(1, len(self.steps) + 1)):
             raise ValueError("plan step positions must be consecutive from one")
+        _validate_plan_dependencies(self.steps)
 
     @classmethod
     def propose(
@@ -278,3 +294,31 @@ class TraceLink:
         require_utc(self.created_at)
         if not self.backend.strip() or not self.trace_id.strip():
             raise ValueError("trace backend and trace_id must not be empty")
+
+
+def _validate_plan_dependencies(steps: tuple[PlanStep, ...]) -> None:
+    positions = {step.position for step in steps}
+    dependencies = {step.position: step.depends_on for step in steps}
+    if any(
+        dependency not in positions
+        for step_dependencies in dependencies.values()
+        for dependency in step_dependencies
+    ):
+        raise ValueError("plan dependency references a missing step")
+
+    visiting: set[int] = set()
+    visited: set[int] = set()
+
+    def visit(position: int) -> None:
+        if position in visiting:
+            raise ValueError("plan dependencies contain a cycle")
+        if position in visited:
+            return
+        visiting.add(position)
+        for dependency in dependencies[position]:
+            visit(dependency)
+        visiting.remove(position)
+        visited.add(position)
+
+    for position in positions:
+        visit(position)
