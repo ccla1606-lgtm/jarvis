@@ -50,6 +50,18 @@ class InMemoryTaskRepository:
             except KeyError as error:
                 raise EntityNotFoundError("Task", str(task_id)) from error
 
+    def list_tasks(self, *, limit: int = 100) -> tuple[Task, ...]:
+        if limit < 1 or limit > 100:
+            raise ValueError("task list limit must be between 1 and 100")
+        with self._lock:
+            return tuple(
+                sorted(
+                    self._tasks.values(),
+                    key=lambda task: (task.created_at, str(task.id)),
+                    reverse=True,
+                )[:limit]
+            )
+
     def save_transition(
         self,
         task: Task,
@@ -118,6 +130,12 @@ class InMemoryTaskRepository:
                 ),
                 None,
             )
+
+    def get_latest_plan_for_task(self, task_id: TaskId) -> Plan | None:
+        with self._lock:
+            self._require_task(task_id)
+            plans = tuple(plan for plan in self._plans.values() if plan.task_id == task_id)
+            return max(plans, key=lambda plan: plan.version, default=None)
 
     def record_approval(self, approval: Approval) -> Approval:
         with self._lock:

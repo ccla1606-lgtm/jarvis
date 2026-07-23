@@ -10,7 +10,7 @@ DATABASE_SCHEMA ?= public
 TEST_DATABASE_URL ?= $(DATABASE_URL)
 
 .PHONY: help doctor bootstrap dev stop verify verify-python verify-web \
-	verify-integration migrate demo smoke-models clean
+	verify-integration migrate demo smoke-models openapi clean
 
 help: ## List available commands.
 	@awk 'BEGIN {FS = ":.*## "; printf "Jarvis commands:\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -35,9 +35,10 @@ stop: ## Stop the local stack without deleting database data.
 verify: verify-python verify-web verify-integration ## Run deterministic pull-request gates.
 
 verify-python: ## Run Python formatting, lint, typing, and unit tests.
-	$(UV) run ruff format --check src tests
-	$(UV) run ruff check src tests
+	$(UV) run ruff format --check src tests scripts
+	$(UV) run ruff check src tests scripts
 	$(UV) run mypy src
+	$(UV) run python scripts/export_openapi.py --check
 	$(UV) run pytest tests/unit
 
 verify-web: ## Run web lint, tests, and production build.
@@ -58,6 +59,9 @@ demo: ## Build, run, and verify one complete disposable local stack.
 
 smoke-models: ## Make one credential-backed call to OpenAI and DeepSeek.
 	$(UV) run python -m jarvis.models.live_smoke
+
+openapi: ## Regenerate the committed OpenAPI v1 contract.
+	$(UV) run python scripts/export_openapi.py
 
 clean: ## Remove generated local build and test output.
 	rm -rf .coverage .mypy_cache .pytest_cache .ruff_cache htmlcov

@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +28,16 @@ class Settings(BaseSettings):
         pattern=r"^[a-z_][a-z0-9_]*$",
     )
     database_connect_timeout_seconds: int = Field(default=2, ge=1, le=30)
+    api_token: SecretStr = SecretStr("development-only-token")
+
+    @model_validator(mode="after")
+    def require_nondefault_production_token(self) -> "Settings":
+        if (
+            self.environment == "production"
+            and self.api_token.get_secret_value() == "development-only-token"
+        ):
+            raise ValueError("production requires a non-default JARVIS_API_TOKEN")
+        return self
 
 
 @lru_cache
