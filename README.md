@@ -58,7 +58,7 @@ or implementation choices. They do not own Jarvis domain state.
 
 ## Command contract
 
-Milestone M0 must implement these commands:
+The M0 development environment implements these commands:
 
     make doctor
     make bootstrap
@@ -77,6 +77,20 @@ the default completion gate is:
 
     make verify && make demo
 
+## Quick start
+
+Prerequisites are Python 3.12, Node.js 24+, uv, GNU Make, Docker with Compose,
+and curl.
+
+    cp .env.example .env
+    make doctor
+    make bootstrap
+    make verify
+    make demo
+
+See [development environment](docs/DEVELOPMENT.md) for service URLs and
+troubleshooting.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
@@ -91,4 +105,3 @@ the default completion gate is:
 Work is implemented one milestone issue at a time. A milestone can be closed
 only when its code, tests, evidence, and documentation are present. Passing unit
 tests alone is never sufficient for a module that has external boundaries.
-
