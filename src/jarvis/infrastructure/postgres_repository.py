@@ -96,6 +96,21 @@ class PostgresTaskRepository:
         with self._connection() as connection:
             return self._get_task(connection, task_id)
 
+    def list_tasks(self, *, limit: int = 100) -> tuple[Task, ...]:
+        if limit < 1 or limit > 100:
+            raise ValueError("task list limit must be between 1 and 100")
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, objective, status, version, created_at, updated_at
+                FROM tasks
+                ORDER BY created_at DESC, id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            ).fetchall()
+        return tuple(_task_from_row(row) for row in rows)
+
     def _get_task(self, connection: Connection[Row], task_id: TaskId) -> Task:
         row = connection.execute(
             """
@@ -268,6 +283,28 @@ class PostgresTaskRepository:
                 WHERE task_id = %s AND version = %s
                 """,
                 (task_id, version),
+            ).fetchone()
+        return _plan_from_row(row) if row is not None else None
+
+    def get_latest_plan_for_task(self, task_id: TaskId) -> Plan | None:
+        with self._connection() as connection:
+            if (
+                connection.execute(
+                    "SELECT 1 FROM tasks WHERE id = %s",
+                    (task_id,),
+                ).fetchone()
+                is None
+            ):
+                raise EntityNotFoundError("Task", str(task_id))
+            row = connection.execute(
+                """
+                SELECT id, task_id, version, status, steps, created_at
+                FROM plans
+                WHERE task_id = %s
+                ORDER BY version DESC
+                LIMIT 1
+                """,
+                (task_id,),
             ).fetchone()
         return _plan_from_row(row) if row is not None else None
 

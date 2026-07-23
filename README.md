@@ -66,6 +66,7 @@ The M0 development environment implements these commands:
     make migrate
     make verify
     make demo
+    make openapi
 
 - make doctor checks required tools and configuration without changing the system.
 - make bootstrap installs dependencies and creates the local environment.
@@ -73,6 +74,7 @@ The M0 development environment implements these commands:
 - make migrate applies immutable PostgreSQL schema migrations.
 - make verify runs every deterministic pull-request gate.
 - make demo runs a complete local end-to-end scenario.
+- make openapi regenerates the reviewed API v1 schema snapshot.
 
 No implementation task is complete until the relevant checks pass. After M0,
 the default completion gate is:
@@ -103,6 +105,7 @@ troubleshooting.
 - [Domain state and persistence](docs/DOMAIN_STATE.md)
 - [Model gateway](docs/MODEL_GATEWAY.md)
 - [Brain runtime](docs/BRAIN_RUNTIME.md)
+- [API v1](docs/API_V1.md)
 - [Agent instructions](AGENTS.md)
 
 ## Delivery policy

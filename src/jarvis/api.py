@@ -1,44 +1,25 @@
-"""FastAPI application factory and M0 endpoints."""
+"""FastAPI application factory and versioned endpoints."""
 
-from typing import Literal
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
 
+from jarvis.api_contracts import DemoRequest, DemoResponse, HealthResponse
+from jarvis.api_errors import install_api_boundary
+from jarvis.api_routes import create_task_router
 from jarvis.config import Settings, get_settings
 from jarvis.health import PostgresReadinessProbe, ReadinessProbe
-
-
-class HealthResponse(BaseModel):
-    """Stable health response."""
-
-    model_config = ConfigDict(frozen=True)
-
-    status: Literal["ok", "not_ready"]
-    service: str
-    detail: str | None = None
-
-
-class DemoRequest(BaseModel):
-    """Deterministic M0 request used to verify the assembled stack."""
-
-    message: str = Field(min_length=1, max_length=2_000)
-
-
-class DemoResponse(BaseModel):
-    """M0 response proving API serialization and UI connectivity."""
-
-    task_id: UUID
-    status: Literal["accepted"]
-    route: Literal["m0_scaffold"]
-    message: str
+from jarvis.infrastructure.postgres_repository import PostgresTaskRepository
+from jarvis.ports.brain_runtime import BrainRuntimePort
+from jarvis.ports.task_repository import TaskRepository
 
 
 def create_app(
     settings: Settings | None = None,
     readiness_probe: ReadinessProbe | None = None,
+    repository: TaskRepository | None = None,
+    brain_runtime: BrainRuntimePort | None = None,
 ) -> FastAPI:
     """Build the API with injectable configuration and readiness dependencies."""
 
@@ -47,6 +28,10 @@ def create_app(
         database_url=resolved_settings.database_url,
         connect_timeout_seconds=resolved_settings.database_connect_timeout_seconds,
     )
+    task_repository = repository or PostgresTaskRepository(
+        resolved_settings.database_url,
+        schema=resolved_settings.database_schema,
+    )
 
     app = FastAPI(
         title="Jarvis API",
@@ -54,6 +39,7 @@ def create_app(
         docs_url="/docs",
         redoc_url=None,
     )
+    install_api_boundary(app)
 
     @app.get("/health/live", response_model=HealthResponse, tags=["health"])
     def liveness() -> HealthResponse:
@@ -84,6 +70,14 @@ def create_app(
             route="m0_scaffold",
             message=request.message,
         )
+
+    app.include_router(
+        create_task_router(
+            repository=task_repository,
+            api_token=resolved_settings.api_token,
+            brain_runtime=brain_runtime,
+        )
+    )
 
     return app
 

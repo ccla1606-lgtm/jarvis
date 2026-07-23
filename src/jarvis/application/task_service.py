@@ -1,5 +1,7 @@
 """Use cases coordinating pure domain rules and repository transactions."""
 
+from dataclasses import dataclass
+
 from jarvis.domain.entities import (
     Approval,
     ApprovalDecision,
@@ -7,9 +9,23 @@ from jarvis.domain.entities import (
     PlanStep,
     Run,
 )
+from jarvis.domain.errors import EntityNotFoundError
 from jarvis.domain.ids import PlanId, RunId, TaskId
 from jarvis.domain.task import Task, TaskStatus
 from jarvis.ports.task_repository import TaskRepository
+
+
+@dataclass(frozen=True, slots=True)
+class PlanDecisionResult:
+    task: Task
+    approval: Approval
+    run: Run | None
+
+
+@dataclass(frozen=True, slots=True)
+class RetryResult:
+    task: Task
+    run: Run
 
 
 class TaskService:
@@ -89,3 +105,112 @@ class TaskService:
         previous = self._repository.get_run(run_id)
         retry = previous.retry()
         return self._repository.create_run(retry)
+
+    def approve_plan(
+        self,
+        task_id: TaskId,
+        plan_id: PlanId,
+        *,
+        plan_version: int,
+        actor: str,
+        reason: str,
+    ) -> PlanDecisionResult:
+        current = self._repository.get_task(task_id)
+        current.transition(
+            TaskStatus.QUEUED,
+            actor=actor,
+            reason="validate approval transition",
+        )
+        plan = self._repository.get_plan(plan_id)
+        if plan.task_id != task_id:
+            raise EntityNotFoundError("Plan", str(plan_id))
+        approval = self.decide_plan(
+            plan_id,
+            plan_version=plan_version,
+            decision=ApprovalDecision.APPROVED,
+            actor=actor,
+            reason=reason,
+        )
+        task = self.transition(
+            task_id,
+            TaskStatus.QUEUED,
+            actor=actor,
+            reason="approved plan queued",
+        )
+        decided_plan = self._repository.get_plan(plan_id)
+        run = self.queue_run(task_id, plan=decided_plan)
+        return PlanDecisionResult(task, approval, run)
+
+    def reject_plan(
+        self,
+        task_id: TaskId,
+        plan_id: PlanId,
+        *,
+        plan_version: int,
+        actor: str,
+        reason: str,
+    ) -> PlanDecisionResult:
+        current = self._repository.get_task(task_id)
+        current.transition(
+            TaskStatus.REJECTED,
+            actor=actor,
+            reason="validate rejection transition",
+        )
+        plan = self._repository.get_plan(plan_id)
+        if plan.task_id != task_id:
+            raise EntityNotFoundError("Plan", str(plan_id))
+        approval = self.decide_plan(
+            plan_id,
+            plan_version=plan_version,
+            decision=ApprovalDecision.REJECTED,
+            actor=actor,
+            reason=reason,
+        )
+        task = self.transition(
+            task_id,
+            TaskStatus.REJECTED,
+            actor=actor,
+            reason="plan rejected",
+        )
+        return PlanDecisionResult(task, approval, None)
+
+    def cancel(
+        self,
+        task_id: TaskId,
+        *,
+        actor: str,
+        reason: str,
+    ) -> Task:
+        current = self._repository.get_task(task_id)
+        if current.status is TaskStatus.CANCELLED:
+            return current
+        return self.transition(
+            task_id,
+            TaskStatus.CANCELLED,
+            actor=actor,
+            reason=reason,
+        )
+
+    def retry_task(
+        self,
+        task_id: TaskId,
+        run_id: RunId,
+        *,
+        actor: str,
+        reason: str,
+    ) -> RetryResult:
+        previous = self._repository.get_run(run_id)
+        if previous.task_id != task_id:
+            raise EntityNotFoundError("Run", str(run_id))
+        current = self._repository.get_task(task_id)
+        task = (
+            current
+            if current.status is TaskStatus.QUEUED
+            else self.transition(
+                task_id,
+                TaskStatus.QUEUED,
+                actor=actor,
+                reason=reason,
+            )
+        )
+        return RetryResult(task, self.retry_run(run_id))

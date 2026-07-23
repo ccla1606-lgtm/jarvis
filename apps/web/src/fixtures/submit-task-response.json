@@ -1,0 +1,14 @@
+{
+  "task": {
+    "id": "4fdf5bb4-ecce-4f88-82ff-d039648c5082",
+    "objective": "Implement the approved change",
+    "status": "AWAITING_APPROVAL",
+    "version": 3,
+    "created_at": "2026-07-24T12:00:00Z",
+    "updated_at": "2026-07-24T12:00:02Z"
+  },
+  "orchestration": {
+    "route": "PLANNED",
+    "interrupted": true
+  }
+}

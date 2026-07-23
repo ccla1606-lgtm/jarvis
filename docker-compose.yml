@@ -41,6 +41,7 @@ services:
       JARVIS_SERVICE_NAME: jarvis-api
       JARVIS_DATABASE_URL: postgresql://${POSTGRES_USER:-jarvis}:${POSTGRES_PASSWORD:-jarvis}@postgres:5432/${POSTGRES_DB:-jarvis}
       JARVIS_DATABASE_CONNECT_TIMEOUT_SECONDS: 2
+      JARVIS_API_TOKEN: ${JARVIS_API_TOKEN:-development-only-token}
     ports:
       - "8000:8000"
     depends_on:

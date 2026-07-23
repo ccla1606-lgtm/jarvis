@@ -40,6 +40,10 @@ Services:
 - OTLP HTTP: localhost:4318
 - Collector health: localhost:13133
 
+Task endpoints require a development bearer token. The value comes from
+`JARVIS_API_TOKEN`; `.env.example` provides a replaceable non-secret
+development placeholder. Swagger UI exposes the bearer authorization control.
+
 Stop services without deleting database data:
 
     make stop
@@ -53,6 +57,7 @@ This runs:
 - Ruff formatting and lint;
 - strict mypy on production Python;
 - Python unit tests;
+- committed OpenAPI schema freshness;
 - React/TypeScript lint;
 - web unit tests;
 - production web build;
@@ -85,8 +90,9 @@ every schema change.
     make demo
 
 The demo uses an isolated Compose project and host PostgreSQL port 55432,
-builds all images, verifies API readiness, submits the deterministic M0 request,
-checks the UI, and removes its containers and volume afterward.
+builds all images, verifies API readiness, submits the same idempotent M4 task
+twice, checks that one canonical task is returned, checks the UI, and removes
+its containers and volume afterward.
 
 ## Troubleshooting
 
@@ -99,5 +105,5 @@ If port 5432 is occupied, set another host port for development:
 
 When doing so, also set DATABASE_URL and TEST_DATABASE_URL to the same host port.
 
-No paid model credentials are used in M0. Do not add secrets to .env.example,
-tests, logs, or Git.
+Deterministic verification does not require paid model credentials. Do not add
+secrets to `.env.example`, tests, logs, or Git.
