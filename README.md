@@ -33,7 +33,7 @@ The MVP is complete when a user can:
 LangGraph, LangSmith, LiteLLM, OMP, and individual model providers are adapters
 or implementation choices. They do not own Jarvis domain state.
 
-## Planned repository layout
+## Repository layout
 
     apps/
       api/
@@ -63,12 +63,14 @@ The M0 development environment implements these commands:
     make doctor
     make bootstrap
     make dev
+    make migrate
     make verify
     make demo
 
 - make doctor checks required tools and configuration without changing the system.
 - make bootstrap installs dependencies and creates the local environment.
 - make dev starts API, UI, PostgreSQL, telemetry, and development dependencies.
+- make migrate applies immutable PostgreSQL schema migrations.
 - make verify runs every deterministic pull-request gate.
 - make demo runs a complete local end-to-end scenario.
 
@@ -98,6 +100,7 @@ troubleshooting.
 - [Module acceptance criteria](docs/MODULE_ACCEPTANCE.md)
 - [Test strategy](docs/TEST_STRATEGY.md)
 - [Architecture decisions](docs/DECISIONS.md)
+- [Domain state and persistence](docs/DOMAIN_STATE.md)
 - [Agent instructions](AGENTS.md)
 
 ## Delivery policy
