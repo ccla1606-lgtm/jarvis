@@ -46,10 +46,17 @@ jobs:
       - name: Install uv
         run: python -m pip install uv==0.11.29
 
-      - name: Install dependencies
+      - name: Bootstrap twice
+        env:
+          POSTGRES_PORT: "55432"
+          TEST_DATABASE_URL: postgresql://jarvis:jarvis@localhost:55432/jarvis
         run: |
-          uv sync --frozen
-          npm ci --prefix apps/web
+          make bootstrap
+          make bootstrap
+          make stop
+
+      - name: Verify installed pre-commit hook
+        run: "$(git rev-parse --git-dir)/hooks/pre-commit"
 
       - name: Verify
         env:
@@ -62,8 +69,9 @@ jobs:
       - name: Build containers
         run: docker compose build
 
-      - name: Run disposable demo
+      - name: Run disposable demo twice
         env:
           POSTGRES_PORT: "55432"
-        run: make demo
-
+        run: |
+          make demo
+          make demo
