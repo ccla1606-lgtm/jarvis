@@ -352,7 +352,6 @@ blocker remains explicitly open rather than hidden. M4.5 may then add the
 operator-direction contracts without guessing how the API/graph path is wired.
 
 ## M4.5. Operator direction and agent control
-## M4.5. Operator direction and agent control
 
 ### Goal
 
