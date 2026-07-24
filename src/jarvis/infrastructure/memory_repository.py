@@ -146,6 +146,23 @@ class InMemoryTaskRepository:
             self._approvals[approval.id] = approval
             return approval
 
+    def get_approval_for_plan(
+        self,
+        plan_id: PlanId,
+        *,
+        plan_version: int,
+    ) -> Approval | None:
+        with self._lock:
+            return next(
+                (
+                    approval
+                    for approval in self._approvals.values()
+                    if approval.plan_id == plan_id
+                    and approval.plan_version == plan_version
+                ),
+                None,
+            )
+
     def create_run(self, run: Run) -> Run:
         with self._lock:
             if run.task_id not in self._tasks:
