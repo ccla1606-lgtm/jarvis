@@ -16,6 +16,8 @@ Credential-backed compatibility is proven in a separate live smoke lane.
 Scope:
 
 - pure domain rules;
+- Project, Goal, AgentProfile, and ChangeProposal transitions;
+- canonical serialization, version digests, and scope comparison;
 - state transitions;
 - routing validators;
 - budget calculations;
@@ -36,7 +38,9 @@ Rules:
 Scope:
 
 - ModelPort adapters;
-- TaskRepository implementations;
+- TaskRepository and direction-control repository implementations;
+- ApprovedExecutionSpec and ExecutionEnvelope builders;
+- AgentProfile promotion and rollback use cases;
 - CodingExecutor adapters;
 - ContextCompiler;
 - API error envelope;
@@ -49,7 +53,9 @@ useful for development but cannot replace a required real implementation.
 
 Scope:
 
-- PostgreSQL transactions and migrations;
+- PostgreSQL transactions and migrations, including M4 to M4.5;
+- concurrent profile promotion and append-only evidence;
+- restart reconstruction of exact approved scope;
 - LangGraph checkpoint and resume;
 - API plus PostgreSQL;
 - OTel Collector export;
@@ -148,6 +154,34 @@ No gate may be converted to allow-failure without an accepted decision.
 - process restart;
 - prior attempts remain queryable;
 - artifact digest mismatch is rejected.
+
+### M4.1 vertical integration
+
+- real API composition with the graph runtime;
+- fast request reaches its terminal result;
+- complex request reaches durable AWAITING_APPROVAL;
+- approval/rejection/cancel/retry through the deployed API;
+- restart while awaiting approval;
+- SSE reconnect without duplicate transitions;
+- real PostgreSQL-backed demo twice.
+
+### Operator direction and agent control
+
+- create WORK and SYSTEM Projects;
+- valid and cyclic Goal hierarchies;
+- immutable Goal revision and stale-revision approval;
+- planned or side-effecting Task without Goal scope;
+- unscoped fast read-only answer;
+- profile draft, candidate, promotion, rejection, and rollback;
+- concurrent promotion with one winner;
+- missing, failing, and passing EvaluationEvidence;
+- agent-originated proposal cannot self-approve;
+- material scope expansion invalidates approval;
+- stable ApprovedExecutionSpec and envelope digests;
+- envelope tampering and unsupported schema;
+- restart reconstruction;
+- retry preserves prior versions and evidence;
+- migration retains historical legacy-unscoped Tasks explicitly.
 
 ### Context
 
@@ -257,6 +291,8 @@ The release evidence packet contains:
 - dependency lock digests;
 - database migration version;
 - make verify output;
+- M4.1 vertical integration output;
+- M4.5 controlled-direction demo output;
 - make demo output;
 - live provider smoke results;
 - OMP smoke result;
