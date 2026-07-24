@@ -63,6 +63,14 @@ and prints only provider/model metadata, token counts, timestamp, and a digest
 of the response content. A missing key reports `BLOCKED` and exits with status
 2; mocked tests are never presented as live compatibility evidence.
 
+## Runtime modes
+
+`JARVIS_MODEL_MODE=deterministic` is the development and integration default. It exercises the same router, structured-output validation, graph nodes, and persistence path without network calls or provider cost. It is evidence for orchestration correctness, never evidence of external provider compatibility.
+
+`JARVIS_MODEL_MODE=live` composes the OpenAI and DeepSeek adapters behind the same gateway. Production rejects deterministic mode, the development API token, or missing `JARVIS_OPENAI_API_KEY` / `JARVIS_DEEPSEEK_API_KEY` at settings validation time. Model names remain configurable through the documented environment variables.
+
+`make smoke-models` is the independent release gate for real GPT and DeepSeek compatibility. Both calls must pass with credentials and their redacted evidence must be attached to the milestone; unit mocks and deterministic runs cannot satisfy that gate.
+
 ## Wire-contract references
 
 - [OpenAI Responses API migration and item model](https://developers.openai.com/api/docs/guides/migrate-to-responses)
