@@ -195,7 +195,7 @@ def test_retry_and_state_survive_repository_restart(
     apply_migrations(database_url, schema=postgres_schema)
     first_process = PostgresTaskRepository(database_url, schema=postgres_schema)
     task = first_process.create_task(
-        Task.create("Durable task"),
+        Task.create("Durable task", now=NOW),
         idempotency_key="durable",
     )
     transitioned, event = task.transition(
