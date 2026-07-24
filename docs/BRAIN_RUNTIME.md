@@ -50,6 +50,14 @@ schema and task ID resumes the same graph thread.
 Neither runtime requires LangSmith or a production Agent Server. A composed
 runtime exposes `mermaid()` for development visualization.
 
+## Default API composition (M4.1)
+
+`create_app()` now owns the production-shaped graph lifecycle when no repository or runtime is injected. FastAPI startup opens the PostgreSQL checkpointer, runs its setup, binds one `LangGraphBrainRuntime`, and only then serves task commands. Shutdown clears the handle and closes the model gateway. API approval and rejection commands first commit the exact plan decision, then resume the matching interrupted graph thread.
+
+Repository or runtime injection remains an explicit test seam: supplying either prevents hidden PostgreSQL and provider startup. Development and test environments use the deterministic model adapter; production validation requires live mode and both provider credentials.
+
+The integration acceptance test uses the default composition root and a real PostgreSQL schema. It proves fast completion, planned interruption, persisted plans and transitions, approval resume, SSE cursor recovery, and resume after a fresh application lifecycle.
+
 ## References
 
 - [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)
