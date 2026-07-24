@@ -60,6 +60,12 @@ Stable codes currently include `UNAUTHORIZED`, `INVALID_PAYLOAD`,
 `INVALID_CURSOR`, `NOT_FOUND`, `STALE_PLAN`, `VERSION_CONFLICT`,
 `INVALID_TRANSITION`, `INVALID_RETRY`, `DOMAIN_CONFLICT`, and `INTERNAL_ERROR`.
 
+## Graph execution and approval resume
+
+The default application composition runs every accepted task through LangGraph and persists both domain state and checkpoints in PostgreSQL. Read-only objectives may complete on the fast route before the submission response returns. Side-effecting objectives persist an immutable plan and stop at `AWAITING_APPROVAL`.
+
+Approval and rejection payloads must identify the exact persisted plan ID and version. The command is committed before the graph is resumed with that same signal. A process restart is safe: a new application lifecycle resolves the checkpoint by task ID and resumes the interrupted thread.
+
 ## SSE cursor semantics
 
 Task transitions are immutable and use the task version as their SSE event ID.
