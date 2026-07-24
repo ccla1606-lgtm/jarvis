@@ -352,6 +352,88 @@ blocker remains explicitly open rather than hidden. M4.5 may then add the
 operator-direction contracts without guessing how the API/graph path is wired.
 
 ## M4.5. Operator direction and agent control
+## M4.5. Operator direction and agent control
+
+### Goal
+
+Add the durable single-operator control model before a real executor is
+connected: Projects, immutable Goal revisions, versioned AgentProfiles,
+content-addressed approval and execution contracts, and proposal-driven agent
+evolution.
+
+### Entry gate
+
+- M4.1 is INTEGRATION-ACCEPTED;
+- the M2 live-smoke blocker is recorded as external and explicitly separated
+  from M4.5 deterministic contracts;
+- every unresolved persistence, API, and security decision in
+  [the M4.5 execution specification](M4_5_EXECUTION_SPEC.md) is closed.
+
+### Ordered work packages
+
+1. M4.5-0 baseline and contract freeze;
+2. M4.5-1 pure domain model;
+3. M4.5-2 PostgreSQL persistence and migration from M4;
+4. M4.5-3 application use cases;
+5. M4.5-4 ApprovedExecutionSpec and ExecutionEnvelope integration;
+6. M4.5-5 versioned API and projections;
+7. M4.5-6 controlled evaluation, promotion, and rollback;
+8. M4.5-7 demo, documentation, and evidence.
+
+Agents must execute these packages in order and use the owned/prohibited modules,
+actions, tests, and exit evidence in the linked specification.
+
+### Deliverables
+
+- Project and Goal with immutable GoalRevision;
+- AgentProfile with immutable AgentProfileVersion;
+- ChangeProposal and append-only EvaluationEvidence;
+- immutable ApprovedExecutionSpec created by approval;
+- content-addressed ExecutionEnvelope as CodingExecutorPort input;
+- idempotent versioned commands, repositories, migrations, API, projections, and
+  stable errors;
+- deterministic promotion and rollback controlled by the operator;
+- updated demo and evidence packet.
+
+### Acceptance tests
+
+1. Planned or side-effecting work cannot be approved without an active Goal and
+   an eligible exact AgentProfileVersion.
+2. Goal and profile edits create immutable versions and never alter prior Runs.
+3. Hierarchy cycles, stale versions, invalid transitions, and scope expansion are
+   rejected without partial state.
+4. One active profile version is enforced under concurrent promotion.
+5. Approval creates a stable digest over every material execution field.
+6. Envelope reconstruction after restart produces the same digest; tampering is
+   rejected.
+7. Retry creates a new Run and envelope while preserving all prior evidence.
+8. Missing or failing evaluation evidence blocks promotion.
+9. An agent-originated proposal cannot approve, promote, apply, or roll back
+   itself.
+10. Migration from M4 and empty state, OpenAPI, UI fixtures, make verify, and
+    make demo twice all pass.
+
+### Transition to M5
+
+M5 is READY only when all M4.5 packages and acceptance tests pass, the envelope
+schema is versioned, and a recording executor consumes it without needing domain
+changes. The M2 live blocker may remain open for implementation only; it remains
+a release blocker.
+
+### Return to development when
+
+- direction or active behavior exists only in prompts or configuration files;
+- versions or evidence can be edited in place;
+- side-effecting work can be unscoped;
+- approval does not bind goal, profile, tools, budgets, and verification;
+- CodingExecutorPort accepts an ad-hoc dictionary or raw prompt;
+- promotion or rollback is possible without operator authorization;
+- an M4.5 package skips its predecessor exit gate.
+
+Full field contracts, invariants, API commands, ordered steps, and package exit
+criteria are canonical in
+[docs/M4_5_EXECUTION_SPEC.md](M4_5_EXECUTION_SPEC.md).
+
 ## M5. Agent Host and first OMP coding executor
 
 ### Goal
