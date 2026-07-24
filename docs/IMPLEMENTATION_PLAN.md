@@ -24,17 +24,18 @@ integration-evidence, and release-evidence frontiers:
 | M0 | merged PR #13 | complete | ACCEPTED |
 | M1 | merged PR #14 | complete | ACCEPTED |
 | M2 | merged PR #15 | live GPT and DeepSeek smoke missing | IMPLEMENTED, RELEASE BLOCKED |
-| M3 | merged PR #16 | graph tests pass, default API/demo wiring not proven | IMPLEMENTED, INTEGRATION BLOCKED |
-| M4 | merged PR #17 | API tests pass, full M3-to-M4 vertical path not proven | IMPLEMENTED, INTEGRATION BLOCKED |
-| M4.1 | not implemented | no evidence | NEXT |
+| M3 | merged PR #16 | graph path proven by M4.1; live providers remain external | INTEGRATION ACCEPTED, RELEASE BLOCKED |
+| M4 | merged PR #17 | API → LangGraph → PostgreSQL proven by M4.1 | INTEGRATION ACCEPTED, RELEASE BLOCKED |
+| M4.1 | merged PR #23 | PostgreSQL E2E, replay safety, restart, SSE, CI, demo twice | ACCEPTED |
 | M4.5 | not implemented | no evidence | NOT STARTED |
 | M5-M9 | not implemented | no evidence | NOT STARTED |
 
-The implementation frontier is M4. The strict release-accepted frontier is M1
+The implementation frontier is M4.5 preparation. The strict release-accepted frontier is M1
 until issue #3 contains successful credential-backed evidence for both provider
 families. M4 SSE is resumable through durable batches and Last-Event-ID; it is
-not yet a long-held push connection. No M5 branch or Agent Host implementation
-was found in the audit.
+not yet a long-held push connection. M4.1 proves the default API → LangGraph →
+PostgreSQL path and is accepted. M2 live GPT + DeepSeek evidence remains the
+release blocker; no M5 branch or Agent Host implementation was found in the audit.
 
 Status uses three independent fields:
 
@@ -350,6 +351,10 @@ M4.1 is INTEGRATION-ACCEPTED when all eight scenarios pass from a clean
 checkout, the real runtime composition is documented, and the current M2 live
 blocker remains explicitly open rather than hidden. M4.5 may then add the
 operator-direction contracts without guessing how the API/graph path is wired.
+
+### M4.1 completion evidence
+
+PR #23 was squash-merged to `main` as `6c5326141527edf3f39f3bcc71bbd501b0779b47`. GitHub Actions CI run #40 passed formatting, lint, strict typing, unit/contract/architecture checks, PostgreSQL integration, Compose validation/build, and `make demo` twice. The deterministic model mode proves orchestration and persistence; it does not satisfy the separate live GPT + DeepSeek smoke gate in issue #3.
 
 ## M4.5. Operator direction and agent control
 
