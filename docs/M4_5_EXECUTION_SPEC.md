@@ -21,12 +21,16 @@ on 2026-07-24 establishes this baseline:
 - M1 implementation and evidence accepted by PR #14;
 - M2 implementation merged by PR #15, while the two-provider credential-backed
   live smoke criterion remains externally blocked in issue #3;
-- M3 implementation and deterministic evidence accepted by PR #16;
-- M4 implementation and deterministic evidence accepted by PR #17;
-- M5 and later runtime milestones are not implemented.
+- M3 implementation merged by PR #16, but the default API/demo composition does
+  not yet prove the real graph path;
+- M4 implementation merged by PR #17, but the full M3-to-M4 vertical path is not
+  yet proven;
+- M4.1 integration closure and M5+ runtime milestones are not implemented.
 
-Therefore the implementation frontier is M4. The release frontier is blocked by
-the outstanding M2 live evidence. M4.5 implementation may proceed because that
+Therefore the implementation frontier is M4, while the integration frontier is
+before M4.1. The release frontier is blocked by both the M2 live evidence and
+the unproven M3-to-M4 integration. M4.1 must close the wiring gap before M4.5
+contracts are implemented. M4.5 may proceed after M4.1 because the M2
 credential blocker does not change its domain contracts, but neither M2 nor the
 MVP release may be reported as fully accepted until the live smoke evidence is
 attached.
@@ -60,6 +64,19 @@ Behavior changes use:
 
 A system-development objective uses an ordinary Project with kind `SYSTEM`.
 Jarvis must not introduce a second hidden hierarchy for its own development.
+
+## 3.5 M4.1 prerequisite: prove the existing vertical path
+
+M4.5 agents must not guess how M3 and M4 connect. Before M4.5-0, execute the M4.1 integration-closure gate:
+
+1. wire the default API composition to the typed brain runtime;
+2. send one fast read-only request through the deployed API and persist its terminal result;
+3. send one complex side-effecting request and persist AWAITING_APPROVAL with exact Plan ID/version;
+4. exercise approve, reject, cancel, retry, restart, and Last-Event-ID reconnect against the same PostgreSQL-backed application;
+5. run the real demo twice and attach logs, transition IDs, and database checks;
+6. record the current batch-and-reconnect SSE behavior as intentional, with long-held push deferred to the UI milestone.
+
+M4.1 is not complete if the demo only checks RECEIVED, if create_app() uses a null brain on the accepted path, or if unit tests are the only evidence.
 
 ## 4. Non-negotiable invariants
 
@@ -268,7 +285,8 @@ not start package N+1 until package N has the listed exit evidence.
 
 Actions:
 
-1. fetch `main`, verify M4 commit and CI evidence;
+1. verify that M4.1 is INTEGRATION-ACCEPTED and attach its evidence packet;
+2. fetch `main`, verify M4 commit and CI evidence;
 2. record the M2 live-smoke blocker without claiming it passed;
 3. inventory current Task, Plan, Approval, Run, repository, API, and graph
    contracts;
