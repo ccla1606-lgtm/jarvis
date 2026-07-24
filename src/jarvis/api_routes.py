@@ -29,7 +29,7 @@ from jarvis.application.task_queries import TaskQueryService
 from jarvis.application.task_service import TaskService
 from jarvis.domain.ids import PlanId, RunId, TaskId
 from jarvis.domain.task import TaskTransition
-from jarvis.graph.contracts import BrainRequest, BrainScope
+from jarvis.graph.contracts import ApprovalSignal, BrainRequest, BrainScope
 from jarvis.ports.brain_runtime import BrainRuntimePort
 from jarvis.ports.task_repository import TaskRepository
 
@@ -129,18 +129,25 @@ def create_task_router(
         response_model=CommandResponse,
         responses=ERROR_RESPONSES,
     )
-    def approve_task(
+    async def approve_task(
         task_id: UUID,
         body: PlanDecisionRequest,
         actor: actor_dependency,
     ) -> CommandResponse:
-        result = commands.approve_plan(
-            TaskId(task_id),
+        task_key = TaskId(task_id)
+        result = await run_in_threadpool(
+            commands.approve_plan,
+            task_key,
             PlanId(body.plan_id),
             plan_version=body.plan_version,
             actor=actor,
             reason=body.reason,
         )
+        if brain_runtime is not None:
+            await brain_runtime.resume(
+                task_key,
+                ApprovalSignal(PlanId(body.plan_id), body.plan_version, True),
+            )
         return CommandResponse.from_decision(
             task=result.task,
             approval=result.approval,
@@ -152,18 +159,25 @@ def create_task_router(
         response_model=CommandResponse,
         responses=ERROR_RESPONSES,
     )
-    def reject_task(
+    async def reject_task(
         task_id: UUID,
         body: PlanDecisionRequest,
         actor: actor_dependency,
     ) -> CommandResponse:
-        result = commands.reject_plan(
-            TaskId(task_id),
+        task_key = TaskId(task_id)
+        result = await run_in_threadpool(
+            commands.reject_plan,
+            task_key,
             PlanId(body.plan_id),
             plan_version=body.plan_version,
             actor=actor,
             reason=body.reason,
         )
+        if brain_runtime is not None:
+            await brain_runtime.resume(
+                task_key,
+                ApprovalSignal(PlanId(body.plan_id), body.plan_version, False),
+            )
         return CommandResponse.from_decision(
             task=result.task,
             approval=result.approval,
