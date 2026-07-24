@@ -14,7 +14,7 @@ on_exit() {
   trap - EXIT
 
   if ((status != 0)); then
-    echo "M4 demo failed; service status follows:" >&2
+    echo "M4.1 demo failed; service status follows:" >&2
     "${compose[@]}" ps >&2 || true
     echo "M4 demo service logs follow:" >&2
     "${compose[@]}" logs --no-color --tail=200 >&2 || true
@@ -58,11 +58,13 @@ duplicate = json.loads(sys.argv[3])
 web_status = sys.argv[4]
 
 assert ready["status"] == "ok", ready
-assert task["task"]["status"] == "RECEIVED", task
+assert task["task"]["status"] == "SUCCEEDED", task
+assert task["orchestration"]["route"] == "fast", task
+assert task["orchestration"]["interrupted"] is False, task
 assert task["task"]["objective"] == "Verify the Jarvis M4 API", task
 assert task["task"]["id"] == duplicate["task"]["id"], (task, duplicate)
 assert web_status == "200", web_status
 
-print("M4 demo passed")
+print("M4.1 API -> LangGraph -> PostgreSQL demo passed")
 print(f"task_id={task['task']['id']}")
 PY

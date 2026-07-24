@@ -9,7 +9,7 @@ from jarvis.domain.entities import (
     PlanStep,
     Run,
 )
-from jarvis.domain.errors import EntityNotFoundError
+from jarvis.domain.errors import EntityNotFoundError, InvalidTransitionError
 from jarvis.domain.ids import PlanId, RunId, TaskId
 from jarvis.domain.task import Task, TaskStatus
 from jarvis.ports.task_repository import TaskRepository
@@ -20,6 +20,7 @@ class PlanDecisionResult:
     task: Task
     approval: Approval
     run: Run | None
+    replayed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,15 +116,41 @@ class TaskService:
         actor: str,
         reason: str,
     ) -> PlanDecisionResult:
+        plan = self._repository.get_plan(plan_id)
+        if plan.task_id != task_id:
+            raise EntityNotFoundError("Plan", str(plan_id))
+        existing = self._repository.get_approval_for_plan(
+            plan_id,
+            plan_version=plan_version,
+        )
+        if existing is not None:
+            if existing.decision is not ApprovalDecision.APPROVED:
+                raise InvalidTransitionError(plan.status.value, ApprovalDecision.APPROVED.value)
+            run = next(
+                (
+                    candidate
+                    for candidate in self._repository.list_runs(task_id)
+                    if candidate.plan_id == plan_id
+                    and candidate.plan_version == plan_version
+                    and candidate.previous_run_id is None
+                ),
+                None,
+            )
+            if run is None:
+                raise RuntimeError("approved plan has no persisted initial run")
+            return PlanDecisionResult(
+                self._repository.get_task(task_id),
+                existing,
+                run,
+                replayed=True,
+            )
+
         current = self._repository.get_task(task_id)
         current.transition(
             TaskStatus.QUEUED,
             actor=actor,
             reason="validate approval transition",
         )
-        plan = self._repository.get_plan(plan_id)
-        if plan.task_id != task_id:
-            raise EntityNotFoundError("Plan", str(plan_id))
         approval = self.decide_plan(
             plan_id,
             plan_version=plan_version,
@@ -150,15 +177,29 @@ class TaskService:
         actor: str,
         reason: str,
     ) -> PlanDecisionResult:
+        plan = self._repository.get_plan(plan_id)
+        if plan.task_id != task_id:
+            raise EntityNotFoundError("Plan", str(plan_id))
+        existing = self._repository.get_approval_for_plan(
+            plan_id,
+            plan_version=plan_version,
+        )
+        if existing is not None:
+            if existing.decision is not ApprovalDecision.REJECTED:
+                raise InvalidTransitionError(plan.status.value, ApprovalDecision.REJECTED.value)
+            return PlanDecisionResult(
+                self._repository.get_task(task_id),
+                existing,
+                None,
+                replayed=True,
+            )
+
         current = self._repository.get_task(task_id)
         current.transition(
             TaskStatus.REJECTED,
             actor=actor,
             reason="validate rejection transition",
         )
-        plan = self._repository.get_plan(plan_id)
-        if plan.task_id != task_id:
-            raise EntityNotFoundError("Plan", str(plan_id))
         approval = self.decide_plan(
             plan_id,
             plan_version=plan_version,
@@ -202,6 +243,17 @@ class TaskService:
         previous = self._repository.get_run(run_id)
         if previous.task_id != task_id:
             raise EntityNotFoundError("Run", str(run_id))
+        existing = next(
+            (
+                candidate
+                for candidate in self._repository.list_runs(task_id)
+                if candidate.previous_run_id == run_id
+            ),
+            None,
+        )
+        if existing is not None:
+            return RetryResult(self._repository.get_task(task_id), existing)
+
         retry = previous.retry()
         current = self._repository.get_task(task_id)
         task = (

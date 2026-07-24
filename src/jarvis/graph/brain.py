@@ -117,7 +117,18 @@ class BrainNodes:
                     "Any side-effecting work must use planned."
                 ),
             ),
-            ModelMessage(MessageRole.USER, state["objective"]),
+            ModelMessage(
+                MessageRole.USER,
+                json.dumps(
+                    {
+                        "objective": state["objective"],
+                        "allowed_tools": state.get("allowed_tools", []),
+                        "allowed_repositories": state.get("allowed_repositories", []),
+                        "side_effects_allowed": state.get("side_effects_allowed", False),
+                    },
+                    separators=(",", ":"),
+                ),
+            ),
         )
         used = state.get("model_tokens_used", 0)
         last_error: RouteValidationError | None = None

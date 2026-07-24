@@ -46,8 +46,8 @@ def test_migrations_create_empty_schema_and_are_idempotent(
     first = apply_migrations(database_url, schema=postgres_schema)
     second = apply_migrations(database_url, schema=postgres_schema)
 
-    assert first.applied == ("0001_domain.sql",)
-    assert first.current_version == "0001_domain.sql"
+    assert first.applied == ("0001_domain.sql", "0002_command_idempotency.sql")
+    assert first.current_version == "0002_command_idempotency.sql"
     assert second.applied == ()
     assert second.current_version == first.current_version
 

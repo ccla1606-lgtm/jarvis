@@ -32,6 +32,10 @@ def test_production_accepts_explicit_api_token() -> None:
         environment="production",
         database_url="postgresql://example/production",
         api_token="production-secret",
+        model_mode="live",
+        openai_api_key="openai-test-secret",
+        deepseek_api_key="deepseek-test-secret",
     )
 
     assert settings.api_token.get_secret_value() == "production-secret"
+    assert settings.model_mode == "live"

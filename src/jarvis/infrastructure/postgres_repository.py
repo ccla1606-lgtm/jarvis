@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 
 from jarvis.domain.entities import (
     Approval,
+    ApprovalDecision,
     Artifact,
     ModelResolution,
     Plan,
@@ -23,6 +24,7 @@ from jarvis.domain.entities import (
 )
 from jarvis.domain.errors import ConcurrencyConflictError, EntityNotFoundError
 from jarvis.domain.ids import (
+    ApprovalId,
     PlanId,
     RunId,
     TaskId,
@@ -354,6 +356,33 @@ class PostgresTaskRepository:
             )
         return approval
 
+    def get_approval_for_plan(
+        self,
+        plan_id: PlanId,
+        *,
+        plan_version: int,
+    ) -> Approval | None:
+        if plan_version < 1:
+            raise ValueError("plan version must be positive")
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    id,
+                    task_id,
+                    plan_id,
+                    plan_version,
+                    decision,
+                    actor,
+                    reason,
+                    created_at
+                FROM approvals
+                WHERE plan_id = %s AND plan_version = %s
+                """,
+                (plan_id, plan_version),
+            ).fetchone()
+        return _approval_from_row(row) if row is not None else None
+
     def create_run(self, run: Run) -> Run:
         with self._connection() as connection:
             connection.execute(
@@ -560,6 +589,19 @@ def _plan_from_row(row: Row) -> Plan:
             )
             for step in raw_steps
         ),
+        created_at=row["created_at"],
+    )
+
+
+def _approval_from_row(row: Row) -> Approval:
+    return Approval(
+        id=ApprovalId(cast(UUID, row["id"])),
+        task_id=TaskId(cast(UUID, row["task_id"])),
+        plan_id=PlanId(cast(UUID, row["plan_id"])),
+        plan_version=cast(int, row["plan_version"]),
+        decision=ApprovalDecision(cast(str, row["decision"])),
+        actor=cast(str, row["actor"]),
+        reason=cast(str, row["reason"]),
         created_at=row["created_at"],
     )
 
