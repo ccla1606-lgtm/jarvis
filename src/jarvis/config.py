@@ -56,9 +56,7 @@ class Settings(BaseSettings):
                 if value is None or not value.get_secret_value()
             ]
             if missing:
-                raise ValueError(
-                    "live model mode requires credentials: " + ", ".join(missing)
-                )
+                raise ValueError("live model mode requires credentials: " + ", ".join(missing))
         return self
 
 
