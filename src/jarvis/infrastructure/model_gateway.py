@@ -13,7 +13,7 @@ def build_model_gateway(settings: Settings) -> ModelGateway:
 
     if settings.model_mode == "deterministic":
         adapter = DeterministicDevelopmentAdapter()
-        candidate_routes = {
+        candidate_routes: dict[ModelProfile, tuple[ModelCandidate, ...]] = {
             profile: (
                 ModelCandidate(
                     profile,
