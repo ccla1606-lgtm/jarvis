@@ -457,9 +457,12 @@ normalize its lifecycle.
 - Agent Host service/process;
 - OMP adapter through the most stable available RPC, SDK, or protocol;
 - PTY fallback only if necessary;
-- workspace allowlist;
+- canonical workspace realpath plus explicit symlink/path-traversal policy;
+- workspace, tool, and command allowlists;
 - minimal subprocess environment;
-- start, events, status, cancel, timeout, and result collection;
+- at-most-one active launch per run attempt;
+- persisted/replayable events and deterministic cancel/completion precedence;
+- start, events, status, cancel, timeout, reconcile, and result collection;
 - immutable artifact manifest with digests;
 - normalized executor error taxonomy.
 
