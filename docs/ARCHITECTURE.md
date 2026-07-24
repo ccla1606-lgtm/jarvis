@@ -2,9 +2,11 @@
 
 ## 1. Architectural goal
 
-Build an assistant that can answer simple requests quickly, plan complex work,
-obtain human approval, execute bounded coding tasks through replaceable CLI
-agents, and expose durable task state and traces through an operator UI.
+Build a single-operator assistant that preserves long-term system direction,
+answers simple requests quickly, plans complex work, binds execution to
+measurable Goals and versioned AgentProfiles, obtains human approval, executes
+bounded coding tasks through replaceable CLI agents, and exposes durable state,
+evidence, and traces through an operator UI.
 
 The architecture must be easy for a coding agent to implement and verify.
 Therefore the control plane begins as a modular monolith, while coding execution
@@ -19,11 +21,18 @@ runs in isolated worker processes.
 5. Observability and cancellation are features, not later additions.
 6. Provider portability is tested, not assumed.
 7. Production-shaped means clean boundaries and evidence, not enterprise scale.
+8. Direction, agent behavior, approval scope, and evaluation evidence are
+   versioned domain state rather than mutable prompt text.
+9. Agents may propose evolution; only the operator promotes or rolls it back.
 
 ## 3. MVP boundaries
 
 ### Included
 
+- single-operator WORK and SYSTEM Projects with measurable versioned Goals;
+- versioned AgentProfiles and controlled promotion or rollback;
+- immutable approved execution specifications and dispatch envelopes;
+- evidence-backed ChangeProposals for agent and system evolution;
 - user request intake;
 - fast, bounded, and planned routing;
 - typed plan creation;
@@ -84,6 +93,12 @@ error categories.
 
 Primary entities:
 
+- Project: operator-owned WORK or SYSTEM direction boundary.
+- Goal and GoalRevision: lifecycle plus immutable measurable direction.
+- AgentProfile and AgentProfileVersion: stable role plus immutable behavior.
+- ApprovedExecutionSpec: exact scope and policy authorized by one Approval.
+- ExecutionEnvelope: content-addressed package accepted by an executor.
+- ChangeProposal and EvaluationEvidence: controlled, reversible evolution.
 - Task: user intent and canonical lifecycle.
 - Plan: versioned proposed steps and approval state.
 - Run: one execution attempt.
@@ -98,6 +113,10 @@ Domain code is pure Python and has no framework or infrastructure imports.
 
 Owns use cases and transaction boundaries:
 
+- create, revise, pause, achieve, abandon, and query Projects and Goals;
+- create, evaluate, promote, retire, roll back, and query agent profiles;
+- create and decide ChangeProposals and append immutable evidence;
+- build and validate ApprovedExecutionSpec and ExecutionEnvelope;
 - submit request;
 - classify request;
 - create and revise plan;
@@ -142,7 +161,8 @@ Initial logical profiles:
 
 Owns deterministic context selection and packing:
 
-1. resolve task scope and allowed repositories;
+1. resolve the ApprovedExecutionSpec, GoalRevision, AgentProfileVersion, task
+   scope, and allowed repositories;
 2. load explicitly referenced artifacts;
 3. retrieve candidate files or records;
 4. filter by access, trust, and relevance;
@@ -155,8 +175,9 @@ artifacts. It is not an autonomous agent.
 
 ### executors
 
-Owns CodingExecutorPort and adapters. The first adapter starts an OMP session in
-an isolated Agent Host process. Later adapters may support Codex CLI, Claude
+Owns CodingExecutorPort and adapters. CodingExecutorPort accepts only a
+validated immutable ExecutionEnvelope. The first adapter starts an OMP session
+in an isolated Agent Host process. Later adapters may support Codex CLI, Claude
 Code, OpenCode, or another protocol-compatible agent.
 
 The executor must support:
@@ -178,7 +199,36 @@ and log structure. OpenTelemetry is canonical; backend exporters are replaceable
 Owns PostgreSQL repositories, migrations, transaction handling, process
 management, filesystem artifact storage, and configuration loading.
 
-## 6. Canonical task state machine
+## 6. Operator direction and agent control
+
+Canonical hierarchy:
+
+    Project
+      -> Goal
+        -> immutable GoalRevision
+          -> Task
+            -> immutable Plan version
+              -> Approval
+                -> ApprovedExecutionSpec
+                  -> ExecutionEnvelope
+                    -> Run
+
+Agent behavior is selected through immutable AgentProfileVersion. System
+development is an ordinary Project with kind SYSTEM; it does not use hidden
+system prompts as canonical direction.
+
+A planned or side-effecting Task must bind an active GoalRevision before approval.
+Approval snapshots every material execution field. A material change to goal
+scope, repositories, tools, side effects, budgets, verification policy, or agent
+behavior invalidates the approval. Provider resolution inside the approved logical
+model profile is recorded but does not expand scope.
+
+An agent can create a ChangeProposal and attach evidence. Promotion, application,
+rollback, and Goal completion require an explicit operator command. Full
+contracts and ordered implementation packages are in
+[M4.5 execution specification](M4_5_EXECUTION_SPEC.md).
+
+## 7. Canonical task state machine
 
 Allowed states:
 
@@ -208,7 +258,7 @@ Rules:
 - cancellation is idempotent;
 - a process restart must not lose an accepted transition.
 
-## 7. Core ports
+## 8. Core ports
 
 ### ModelPort
 
@@ -223,10 +273,30 @@ Responsibilities:
 
 Responsibilities:
 
-- transactionally create and update tasks, plans, runs, and approvals;
+- transactionally create and update Projects, Goals, profile versions,
+  proposals, tasks, plans, runs, approvals, specs, and envelopes;
 - enforce optimistic concurrency;
 - expose append-only transition history;
 - support idempotency keys.
+
+### DirectionRepository
+
+Responsibilities:
+
+- transactionally persist Projects, Goal revisions, AgentProfile versions,
+  ChangeProposals, evidence, ApprovedExecutionSpecs, and ExecutionEnvelopes;
+- enforce append-only versions, optimistic concurrency, idempotency, and one
+  active profile version;
+- reconstruct exact approved scope after restart.
+
+### ExecutionSpecBuilder
+
+Responsibilities:
+
+- validate Project, Goal, Plan, profile, policy, and budget versions;
+- create canonical ApprovedExecutionSpec and ExecutionEnvelope payloads;
+- calculate versioned stable digests;
+- reject tampering, stale scope, and unsupported schemas.
 
 ### ContextCompilerPort
 
@@ -254,10 +324,14 @@ Responsibilities:
 - record normalized metrics and safe events;
 - redact secrets before export.
 
-## 8. Persistence
+## 9. Persistence
 
 PostgreSQL is canonical for:
 
+- Projects, Goals, and immutable Goal revisions;
+- AgentProfiles and immutable AgentProfile versions;
+- ChangeProposals and immutable EvaluationEvidence;
+- ApprovedExecutionSpecs and ExecutionEnvelopes;
 - tasks and transitions;
 - plans and versions;
 - approvals;
@@ -273,9 +347,9 @@ stores immutable references and digests.
 LangGraph checkpoints may use PostgreSQL, but checkpoint tables are not a
 replacement for domain tables.
 
-## 9. API boundary
+## 10. API boundary
 
-Initial endpoints:
+Initial task endpoints:
 
 - POST /v1/tasks
 - GET /v1/tasks
@@ -285,26 +359,31 @@ Initial endpoints:
 - POST /v1/tasks/{task_id}/cancel
 - POST /v1/tasks/{task_id}/retry
 - GET /v1/tasks/{task_id}/events
+- project and explicit Goal lifecycle command/query endpoints;
+- agent-profile version, candidate, promotion, rejection, and rollback endpoints;
+- ChangeProposal, evidence, decision, application, and rollback endpoints;
 - GET /health/live
 - GET /health/ready
 
 Commands accept an idempotency key. API schemas are versioned and generated
 from canonical Pydantic models. The UI consumes the same OpenAPI contract.
 
-## 10. Security baseline
+## 11. Security baseline
 
 - secrets come from environment or a secret provider, never source control;
 - configuration startup fails on missing required secrets;
 - subprocesses receive a minimal environment;
 - workspace paths are allowlisted;
-- dangerous tool actions require approval;
+- dangerous tool actions and material scope expansion require approval;
+- active agent profiles cannot approve or mutate their own versions;
+- every executor start validates approved-spec and envelope digests;
 - stdout, stderr, prompts, and traces pass through redaction;
 - external content is untrusted and cannot change system policy;
 - all external calls use explicit timeouts;
 - cancellation and process termination are tested;
 - the Agent Host cannot access unrelated workspaces.
 
-## 11. Replaceability requirements
+## 12. Replaceability requirements
 
 The architecture is portable only if these tests remain true:
 
@@ -314,9 +393,13 @@ The architecture is portable only if these tests remain true:
 3. adding a second coding CLI does not modify domain entities;
 4. disabling LangSmith does not remove canonical traces or task history;
 5. UI state can be rebuilt from API and task events;
-6. no provider-specific identifier is used as a Jarvis primary key.
+6. no provider-specific identifier is used as a Jarvis primary key;
+7. a second coding CLI consumes the same ExecutionEnvelope;
+8. historical Runs remain reproducible after profile promotion or rollback;
+9. system direction can be reconstructed from Project and Goal revisions without
+   reading hidden prompts.
 
-## 12. Deployment shape
+## 13. Deployment shape
 
 MVP Docker Compose services:
 

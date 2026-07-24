@@ -11,25 +11,75 @@ When instructions conflict, use this order:
 2. docs/DECISIONS.md;
 3. docs/ARCHITECTURE.md;
 4. docs/IMPLEMENTATION_PLAN.md;
-5. docs/MODULE_ACCEPTANCE.md and docs/TEST_STRATEGY.md;
-6. local module documentation.
+5. the execution specification linked by the active milestone, including
+   docs/M4_5_EXECUTION_SPEC.md for M4.5;
+6. docs/MODULE_ACCEPTANCE.md and docs/TEST_STRATEGY.md;
+7. local module documentation.
 
 Do not silently reconcile a contradiction. Stop, describe the conflict, and
 request a decision.
 
 ## Required workflow
 
-1. Work on one GitHub issue at a time.
-2. Read the issue, linked architecture sections, and acceptance criteria.
-3. Inspect existing code and tests before editing.
-4. Write a short implementation plan for the issue.
-5. Implement the smallest complete vertical change.
-6. Add or update tests with the implementation.
-7. Run the narrow tests while developing.
-8. Run make verify before declaring completion.
-9. Run make demo when the change touches an MVP path.
-10. Review the diff for scope creep, secrets, dead code, and architecture leaks.
-11. Report commands run, results, and remaining risks.
+1. Work on one GitHub issue and one declared work package at a time.
+2. Read the issue, current status baseline, linked architecture sections,
+   execution specification, and acceptance criteria.
+3. State predecessor implementation, integration-evidence, and release-evidence
+   status separately; never collapse them into the word "done".
+4. Inspect existing code, migrations, API schemas, and tests before editing.
+5. List exact owned modules, prohibited modules, inputs, outputs, transitions,
+   errors, migrations, telemetry, and evidence for the work package.
+6. Stop and request an operator decision if any contract is ambiguous or
+   conflicts with a higher-priority source.
+7. Write a short implementation plan mapped one-to-one to acceptance tests.
+8. Implement the smallest complete vertical change without starting the next
+   package.
+9. Add or update tests with the implementation.
+10. Run narrow tests while developing.
+11. Run make verify before declaring implementation complete.
+12. Run make demo when the change touches an MVP path.
+13. Review the diff for scope creep, secrets, dead code, mutable evidence, and
+   architecture leaks.
+14. Report commands, results, implementation/evidence status, blockers, and the
+   exact transition gate for the next package.
+
+## Milestone transition protocol
+
+Before writing production code, an agent must produce a readiness statement:
+
+- active stage and work-package identifier;
+- predecessor implementation, integration-evidence, and release-evidence status;
+- exact source commit;
+- dependencies and external blockers;
+- owned and prohibited modules;
+- inputs, outputs, transitions, stable errors, migrations, telemetry, and tests;
+- unresolved decisions, which must be empty.
+
+A package is READY only when all contracts are explicit and its predecessor exit
+evidence is reproducible. A downstream package may proceed past an isolated
+external live-test blocker only after an explicit operator decision records why
+that blocker cannot invalidate the downstream contract. The blocker remains open
+for release.
+
+A package is IMPLEMENTED only when deterministic code, tests, migrations,
+documentation, and evidence pass. It is INTEGRATION-ACCEPTED only when the real
+module path is wired and proven. It is RELEASE-ACCEPTED only when mandatory
+external evidence and dependency release gates also pass. Agents must use these
+terms exactly.
+
+## Single-operator control rules
+
+- WORK and SYSTEM direction is represented by Project and immutable GoalRevision
+  records; hidden prompt-only goals are prohibited.
+- Planned or side-effecting Tasks require active Goal scope.
+- Runs bind exact AgentProfileVersion and ApprovedExecutionSpec digests.
+- Agents may draft goals, profile versions, and ChangeProposals, but only the
+  operator may approve material scope, promotion, application, rollback, or goal
+  completion.
+- Active profiles, approved scopes, execution envelopes, evidence records, and
+  historical Runs are never edited in place.
+- Self-modification means proposal plus evaluation plus operator decision, not
+  direct mutation.
 
 ## Engineering rules
 
@@ -68,8 +118,9 @@ request a decision.
 - Prefer stable RPC, SDK, or agent protocol integration.
 - PTY parsing is a fallback and must have contract tests for every supported CLI
   version.
-- A coding agent receives a bounded task, selected context, allowed tools,
-  resource limits, and a completion contract.
+- CodingExecutorPort receives only a validated immutable ExecutionEnvelope.
+- A coding agent receives a bounded task, exact goal and profile versions,
+  selected context, allowed tools, resource limits, and a completion contract.
 - An agent result is not accepted until an independent verifier checks it.
 
 ## Test policy
@@ -91,7 +142,10 @@ A task must be returned to development when any of these are present:
 - tests that do not execute the changed behavior;
 - unbounded retry, recursion, or agent spawning;
 - direct provider or CLI dependencies outside adapters;
-- state held only in memory or prompts;
+- state, system direction, or active agent behavior held only in memory or prompts;
+- an unscoped planned or side-effecting Task;
+- direct mutation or self-approval of an active AgentProfileVersion;
+- execution that does not verify the ApprovedExecutionSpec and envelope digest;
 - secrets in source, fixtures, logs, traces, or artifacts;
 - undocumented schema or API changes;
 - a failing make verify or required make demo;
@@ -107,5 +161,7 @@ An issue is done only when:
 - telemetry covers the new external boundary;
 - documentation matches behavior;
 - the diff contains no unrelated changes;
-- the final report includes evidence and known limitations.
+- the final report includes implementation, integration, and release evidence,
+  known limitations, remaining blockers, and the exact readiness decision for the
+  next work package.
 

@@ -90,6 +90,56 @@ It explicitly excludes Temporal, Kubernetes, multi-region, autonomous teams,
 Knowledge Plane, self-improvement, and advanced sandbox infrastructure until
 measured requirements justify them.
 
+## ADR-010: Single-operator product boundary
+
+Status: accepted for MVP.
+
+Jarvis serves one authenticated operator. WORK and SYSTEM Projects share one
+domain model. Multi-user RBAC, organization tenancy, billing, and enterprise
+identity remain post-MVP. The single-user boundary does not remove
+authentication, audit history, idempotency, workspace isolation, or secret
+handling.
+
+## ADR-011: Durable Project and immutable Goal revisions
+
+Status: accepted for M4.5.
+
+Long-term direction is represented by Project, Goal, and immutable GoalRevision
+records in PostgreSQL. Planned or side-effecting Tasks bind an active revision.
+Changing direction never rewrites already approved or completed work. Jarvis
+system development uses a Project with kind SYSTEM rather than a privileged
+hidden planning mechanism.
+
+## ADR-012: Versioned agents and content-addressed execution
+
+Status: accepted for M4.5.
+
+AgentProfile is stable role identity; AgentProfileVersion is immutable behavior.
+Approval creates an ApprovedExecutionSpec that binds goal, plan, profile, scope,
+tools, side effects, budgets, and verification. CodingExecutorPort accepts only
+an immutable ExecutionEnvelope derived from that spec. Every version and envelope
+uses canonical serialization with a schema-versioned digest.
+
+## ADR-013: Proposal-driven evolution with operator promotion
+
+Status: accepted for M4.5.
+
+Agents may draft ChangeProposals and evaluation evidence. They cannot mutate,
+promote, apply, or roll back active profiles or policies. Promotion and rollback
+are explicit operator commands, preserve history, and require reproducible
+evidence. M4.5 records deterministic evidence; M7 adds automated evaluation and
+verification execution.
+
+## ADR-014: Separate implementation, integration, and release evidence
+
+Status: accepted.
+
+A milestone can have implemented code while its real module path is not yet
+wired, or while mandatory live evidence is externally blocked. Downstream
+implementation may proceed only when the operator records why the blocker cannot
+invalidate downstream contracts. Release acceptance remains blocked, and no
+missing integration or live evidence may be described as passed.
+
 ## Decision change procedure
 
 A change requires:

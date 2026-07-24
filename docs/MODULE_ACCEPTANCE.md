@@ -163,6 +163,50 @@ Missing evidence produces NEEDS_REVISION, not assumed success.
 - readiness returns true with unavailable PostgreSQL;
 - event stream is the only durable history.
 
+## Operator direction and agent control
+
+### Accept when
+
+- WORK and SYSTEM Projects use one canonical model;
+- Goal direction, agent behavior, approval scope, envelopes, and evidence are
+  immutable or append-only versions;
+- every planned or side-effecting Task binds an active GoalRevision and exact
+  AgentProfileVersion;
+- approval creates a content-addressed ApprovedExecutionSpec;
+- CodingExecutorPort accepts only a validated ExecutionEnvelope;
+- promotion and rollback are evidence-backed, atomic, audited, idempotent, and
+  operator-authorized;
+- historical Runs remain reproducible after direction or profile changes;
+- the real M3-to-M4 API/graph path is proven separately by M4.1.
+
+### Required tests
+
+- Project, Goal, profile, and proposal allowed and forbidden transitions;
+- goal hierarchy cycle and cross-project parent rejection;
+- immutable revision and canonical digest golden vectors;
+- stale version and duplicate command behavior;
+- migration from M4 and from empty PostgreSQL;
+- restart and exact scope reconstruction;
+- concurrent profile promotion with one winner;
+- missing/failing evidence blocks promotion;
+- agent self-approval and self-promotion rejection;
+- approval invalidation after material scope change;
+- envelope tamper, schema, budget, and digest rejection;
+- retry preserves prior envelopes and evidence;
+- OpenAPI compatibility and disposable M4.5 demo twice.
+
+### Needs revision when
+
+- project direction or active behavior exists only in prompt text;
+- a GoalRevision, AgentProfileVersion, ApprovedExecutionSpec, envelope, or
+  evidence record can be edited in place;
+- a planned or side-effecting Task can be unscoped;
+- an API handler or graph node performs promotion or approval rules;
+- an agent can approve its own proposal or promotion;
+- a provider model name or CLI session identifier becomes a domain key;
+- migration silently assigns historical unscoped Tasks to a Goal;
+- M5 would require a domain or envelope redesign.
+
 ## Context compiler
 
 ### Accept when
@@ -306,7 +350,9 @@ Missing evidence produces NEEDS_REVISION, not assumed success.
 The whole system is accepted only if:
 
 - make verify passes from a clean checkout;
-- make demo passes twice consecutively;
+- M4.1 proves the real graph/API vertical path;
+- the M4.5 controlled-direction demo and complete make demo pass twice
+  consecutively;
 - required M9 scenarios pass;
 - all services expose useful health checks;
 - no critical secret, dependency, or security finding is open;
