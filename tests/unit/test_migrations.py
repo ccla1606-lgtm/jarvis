@@ -29,5 +29,6 @@ def test_migration_runner_rejects_empty_directory(tmp_path: Path) -> None:
         )
 
 
-def test_packaged_migration_is_available() -> None:
+def test_packaged_migrations_are_available() -> None:
     assert (DEFAULT_MIGRATION_DIRECTORY / "0001_domain.sql").is_file()
+    assert (DEFAULT_MIGRATION_DIRECTORY / "0002_command_idempotency.sql").is_file()
