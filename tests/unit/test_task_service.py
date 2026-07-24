@@ -67,3 +67,83 @@ def test_run_factory_can_preserve_explicit_failed_attempt() -> None:
     run = Run.queue(task_id=task.id).with_status(RunStatus.FAILED)
 
     assert repository.create_run(run) == run
+
+
+def test_plan_decision_replay_returns_original_approval_and_run() -> None:
+    repository = InMemoryTaskRepository()
+    service = TaskService(repository)
+    task = service.submit("Change repository", idempotency_key="decision-replay")
+    service.transition(
+        task.id,
+        TaskStatus.TRIAGING,
+        actor="brain",
+        reason="triage",
+    )
+    service.transition(
+        task.id,
+        TaskStatus.PLANNING,
+        actor="brain",
+        reason="plan",
+    )
+    service.transition(
+        task.id,
+        TaskStatus.AWAITING_APPROVAL,
+        actor="brain",
+        reason="await approval",
+    )
+    plan = service.propose_plan(
+        task.id,
+        version=1,
+        steps=(PlanStep(1, "Apply approved change"),),
+    )
+
+    first = service.approve_plan(
+        task.id,
+        plan.id,
+        plan_version=plan.version,
+        actor="operator",
+        reason="approved",
+    )
+    replay = service.approve_plan(
+        task.id,
+        plan.id,
+        plan_version=plan.version,
+        actor="operator",
+        reason="approved",
+    )
+
+    assert replay.replayed is True
+    assert replay.approval == first.approval
+    assert replay.run == first.run
+    assert len(repository.list_runs(task.id)) == 1
+
+
+def test_retry_replay_returns_original_attempt() -> None:
+    repository = InMemoryTaskRepository()
+    service = TaskService(repository)
+    task = service.submit("Retry work", idempotency_key="retry-replay")
+    service.transition(
+        task.id,
+        TaskStatus.FAILED,
+        actor="executor",
+        reason="failed",
+    )
+    failed = repository.create_run(
+        Run.queue(task_id=task.id).with_status(RunStatus.FAILED)
+    )
+
+    first = service.retry_task(
+        task.id,
+        failed.id,
+        actor="operator",
+        reason="retry",
+    )
+    replay = service.retry_task(
+        task.id,
+        failed.id,
+        actor="operator",
+        reason="retry",
+    )
+
+    assert replay.run == first.run
+    assert len(repository.list_runs(task.id)) == 2
