@@ -8,16 +8,36 @@ premature distributed infrastructure.
 
 ## MVP outcome
 
-The MVP is complete when a user can:
+The MVP is complete when its single operator can:
 
-1. submit a request;
-2. receive a fast answer for a simple request;
-3. receive an explicit plan for a complex request;
-4. approve or reject that plan;
-5. run an approved coding task through one CLI coding-agent adapter;
-6. cancel or retry the run;
-7. inspect task state, agent actions, artifacts, logs, and traces in the UI;
-8. switch between at least two LLM provider families without changing domain code.
+1. define WORK or SYSTEM Projects and measurable versioned Goals;
+2. define versioned AgentProfiles with explicit tools, context, budgets, and
+   verification policy;
+3. submit a request linked to an active Goal;
+4. receive a fast answer for a simple read-only request;
+5. receive an explicit plan for a complex request;
+6. approve or reject one immutable execution scope;
+7. run the approved coding task through one CLI coding-agent adapter;
+8. cancel or retry the run without losing prior evidence;
+9. inspect task state, agent actions, artifacts, logs, costs, and traces in the UI;
+10. evaluate, promote, and roll back agent-profile versions through explicit
+    evidence and operator approval;
+11. switch between at least two LLM provider families without changing domain code.
+
+## Current delivery status
+
+As audited on 2026-07-24, the implementation frontier on `main` is M4:
+M0 and M1 are accepted, M2 implementation is complete but its required
+two-provider credential-backed live smoke remains externally blocked, and M3/M4
+code is merged with isolated deterministic evidence. The M3 graph is not yet
+wired into the default API/demo path, so the system-level vertical slice is not
+accepted. M5 has not started. M4.1 integration closure and M4.5 operator control
+are the next gates.
+
+Implementation completion, integration-evidence, and release-evidence are
+tracked separately. An isolated external live-smoke blocker may permit
+downstream implementation after an explicit operator decision, but it never
+counts as release evidence.
 
 ## Architecture
 
@@ -99,6 +119,7 @@ troubleshooting.
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
+- [M4.5 execution specification](docs/M4_5_EXECUTION_SPEC.md)
 - [Module acceptance criteria](docs/MODULE_ACCEPTANCE.md)
 - [Test strategy](docs/TEST_STRATEGY.md)
 - [Architecture decisions](docs/DECISIONS.md)
@@ -110,6 +131,8 @@ troubleshooting.
 
 ## Delivery policy
 
-Work is implemented one milestone issue at a time. A milestone can be closed
-only when its code, tests, evidence, and documentation are present. Passing unit
-tests alone is never sufficient for a module that has external boundaries.
+Work is implemented one accepted work package at a time. Each report states
+implementation, integration-evidence, and release-evidence status separately. A
+milestone is release-accepted only when its code, tests, external evidence,
+dependencies, and documentation are complete. Passing unit tests alone is never
+sufficient for a module that has external boundaries.
