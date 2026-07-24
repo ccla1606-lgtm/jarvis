@@ -385,6 +385,8 @@ actions, tests, and exit evidence in the linked specification.
 ### Deliverables
 
 - Project and Goal with immutable GoalRevision;
+- idempotent OperatorBootstrap with versioned Personal Project, Inbox Goal, and
+  default assistant profile for omitted fast read-only scope;
 - AgentProfile with immutable AgentProfileVersion;
 - ChangeProposal and append-only EvaluationEvidence;
 - immutable ApprovedExecutionSpec created by approval;
@@ -396,20 +398,22 @@ actions, tests, and exit evidence in the linked specification.
 
 ### Acceptance tests
 
-1. Planned or side-effecting work cannot be approved without an active Goal and
-   an eligible exact AgentProfileVersion.
-2. Goal and profile edits create immutable versions and never alter prior Runs.
-3. Hierarchy cycles, stale versions, invalid transitions, and scope expansion are
+1. Planned or side-effecting work cannot be approved without an explicit active
+   Goal and an eligible exact AgentProfileVersion.
+2. Omitted fast read-only scope resolves to persisted built-in versions; new
+   canonical Tasks never store null direction or behavior.
+3. Goal and profile edits create immutable versions and never alter prior Runs.
+4. Hierarchy cycles, stale versions, invalid transitions, and scope expansion are
    rejected without partial state.
-4. One active profile version is enforced under concurrent promotion.
-5. Approval creates a stable digest over every material execution field.
-6. Envelope reconstruction after restart produces the same digest; tampering is
+5. One active profile version is enforced under concurrent promotion.
+6. Approval creates a stable digest over every material execution field.
+7. Envelope reconstruction after restart produces the same digest; tampering is
    rejected.
-7. Retry creates a new Run and envelope while preserving all prior evidence.
-8. Missing or failing evaluation evidence blocks promotion.
-9. An agent-originated proposal cannot approve, promote, apply, or roll back
+8. Retry creates a new Run and envelope while preserving all prior evidence.
+9. Missing or failing evaluation evidence blocks promotion.
+10. An agent-originated proposal cannot approve, promote, apply, or roll back
    itself.
-10. Migration from M4 and empty state, OpenAPI, UI fixtures, make verify, and
+11. Migration from M4 and empty state, OpenAPI, UI fixtures, make verify, and
     make demo twice all pass.
 
 ### Transition to M5
