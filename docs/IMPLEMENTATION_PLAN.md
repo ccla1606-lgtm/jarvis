@@ -2,23 +2,60 @@
 
 ## 1. Delivery model
 
-Implementation proceeds through ten milestones, M0 through M9. Each milestone
-must leave the repository runnable and must not depend on incomplete future
-modules for its own acceptance.
+Implementation proceeds through twelve delivery gates: M0 through M4, the
+integration-closure gate M4.1, the control-plane insertion M4.5, and M5 through
+M9. Each gate must leave the repository runnable and must not depend on
+incomplete future modules for its own implementation evidence.
 
 The critical path is:
 
-    M0 -> M1 -> M2 -> M3 -> M4 -> M5 -> M6 -> M7 -> M8 -> M9
+    M0 -> M1 -> M2 -> M3 -> M4 -> M4.1 -> M4.5 -> M5 -> M6 -> M7 -> M8 -> M9
 
 Small UI and documentation tasks may run in parallel after M4, but milestone
 acceptance remains sequential on the critical path.
 
-## 2. Universal Definition of Ready
+## 2. Audited status baseline
+
+The 2026-07-24 evidence audit establishes separate implementation,
+integration-evidence, and release-evidence frontiers:
+
+| Gate | Implementation | Integration/evidence | Release result |
+| --- | --- | --- | --- |
+| M0 | merged PR #13 | complete | ACCEPTED |
+| M1 | merged PR #14 | complete | ACCEPTED |
+| M2 | merged PR #15 | live GPT and DeepSeek smoke missing | IMPLEMENTED, RELEASE BLOCKED |
+| M3 | merged PR #16 | graph tests pass, default API/demo wiring not proven | IMPLEMENTED, INTEGRATION BLOCKED |
+| M4 | merged PR #17 | API tests pass, full M3-to-M4 vertical path not proven | IMPLEMENTED, INTEGRATION BLOCKED |
+| M4.1 | not implemented | no evidence | NEXT |
+| M4.5 | not implemented | no evidence | NOT STARTED |
+| M5-M9 | not implemented | no evidence | NOT STARTED |
+
+The implementation frontier is M4. The strict release-accepted frontier is M1
+until issue #3 contains successful credential-backed evidence for both provider
+families. M4 SSE is resumable through durable batches and Last-Event-ID; it is
+not yet a long-held push connection. No M5 branch or Agent Host implementation
+was found in the audit.
+
+Status uses three independent fields:
+
+- implementation: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, or NEEDS_REVISION;
+- integration: NOT_STARTED, IN_PROGRESS, ACCEPTED, or BLOCKED;
+- release evidence: INCOMPLETE, BLOCKED_EXTERNAL, or COMPLETE.
+
+Only IMPLEMENTED plus integration ACCEPTED, complete release evidence, and
+accepted dependencies produces RELEASE_ACCEPTED. Downstream implementation may
+proceed past a BLOCKED_EXTERNAL dependency only through an explicit operator
+decision stating why the blocker cannot invalidate the next contract. M9 remains
+blocked until every mandatory live gate passes.
+
+## 3. Universal Definition of Ready
 
 An implementation issue is ready only when:
 
 - its goal and user-visible result are explicit;
-- dependencies are closed or available;
+- predecessor implementation is complete, and any integration or external
+  evidence blocker is either closed or explicitly waived for downstream
+  implementation by the operator without waiving release evidence;
 - owned modules and prohibited modules are named;
 - inputs, outputs, errors, and state transitions are specified;
 - acceptance scenarios are testable;
@@ -29,7 +66,7 @@ An implementation issue is ready only when:
 If any item is missing, the issue stays blocked and no production code is
 written.
 
-## 3. Universal Definition of Done
+## 4. Universal Definition of Done
 
 Every milestone must provide:
 
@@ -43,6 +80,32 @@ Every milestone must provide:
 - a completion report with commands and evidence.
 
 Any user-visible MVP path change must also pass make demo.
+
+A completion report must state implementation, integration, and release-evidence
+status separately. The word "done" without all three statuses is not an
+accepted milestone result.
+
+## 5. Milestone transition protocol
+
+Before a coding agent starts a gate or work package it must:
+
+1. name the exact issue, gate, package, and source commit;
+2. reproduce predecessor exit evidence or cite the accepted evidence packet;
+3. list owned modules and modules that must not change;
+4. list input/output schemas, state transitions, stable errors, migrations,
+   telemetry, and tests;
+5. resolve every decision that could change persistence, API, or security;
+6. map implementation steps one-to-one to acceptance scenarios.
+
+During implementation the agent works on one package, keeps the repository
+runnable, and cannot silently begin a later package.
+
+The next package becomes READY only when the current package's mandatory
+deterministic tests, migrations, documentation, and evidence pass. A gate is
+INTEGRATION-ACCEPTED only when the real module path is wired and proven. A
+release gate is closed only when mandatory live evidence and dependencies also
+pass. Any ambiguity, failed mandatory gate, unreproducible evidence, or
+active-path stub returns the package to NEEDS_REVISION.
 
 ## M0. Repository and executable development environment
 
@@ -231,15 +294,81 @@ Expose versioned task commands, queries, event streaming, and human approval.
 - SSE is the only source of state;
 - API logs expose request secrets.
 
+## M4.1. Integration closure for the existing brain and API
+
+### Goal
+
+Prove the already merged M3 graph and M4 API operate as one real vertical slice.
+This is a correction gate, not a new product feature.
+
+### Entry gate
+
+- M3 and M4 implementation commits are present on the source branch;
+- their isolated unit, integration, and API evidence is reproducible;
+- the operator accepts the documented M2 live-smoke blocker as external and
+  separate from this integration work.
+
+### Deliverables
+
+- default application composition wires the typed brain runtime into the API;
+- task submission follows the real triage route rather than a placeholder-only
+  path;
+- planned requests reach durable `AWAITING_APPROVAL` with an exact Plan version;
+- fast read-only requests complete without an approval;
+- approval, rejection, cancel, retry, restart, and event reconstruction work
+  through the same running application;
+- `make demo` exercises the real API -> graph -> PostgreSQL path twice;
+- the SSE contract explicitly documents reconnectable durable batches versus a
+  future long-held push stream.
+
+### Acceptance tests
+
+1. A simple request through the deployed API reaches the fast path and persists
+   its terminal result.
+2. A complex side-effecting request through the deployed API reaches
+   `AWAITING_APPROVAL` and persists its exact Plan version.
+3. Approval through the API creates the expected Run/ApprovedExecutionSpec
+   boundary without bypassing application services.
+4. Rejection creates no Run.
+5. API restart while awaiting approval preserves the task and allows a valid
+   approval.
+6. Duplicate submit, approve, cancel, and retry commands remain idempotent.
+7. SSE reconnect from `Last-Event-ID` returns no duplicate transitions.
+8. `make demo` passes twice with real PostgreSQL and the configured graph runtime.
+
+### Return to development when
+
+- default API composition uses a null or placeholder brain on the accepted path;
+- demo checks only `RECEIVED` instead of the route required by the request;
+- API and graph use different repositories or state machines;
+- approval/retry bypasses the exact persisted Plan version;
+- a passing unit test is used as evidence for an unwired production path.
+
+### Transition to M4.5
+
+M4.1 is INTEGRATION-ACCEPTED when all eight scenarios pass from a clean
+checkout, the real runtime composition is documented, and the current M2 live
+blocker remains explicitly open rather than hidden. M4.5 may then add the
+operator-direction contracts without guessing how the API/graph path is wired.
+
+## M4.5. Operator direction and agent control
 ## M5. Agent Host and first OMP coding executor
 
 ### Goal
 
-Run one bounded coding task in an isolated process and normalize its lifecycle.
+Run one approved, content-addressed ExecutionEnvelope in an isolated process and
+normalize its lifecycle.
+
+### Entry gate
+
+- M4.1 is integration-accepted;
+- M4.5 deterministic contracts and migrations are accepted;
+- CodingExecutorPort and envelope schema are frozen and versioned;
+- a recording executor proves exact scope, profile, budget, and digest handoff.
 
 ### Deliverables
 
-- CodingExecutorPort;
+- CodingExecutorPort implementation without changing its M4.5 domain contract;
 - Agent Host service/process;
 - OMP adapter through the most stable available RPC, SDK, or protocol;
 - PTY fallback only if necessary;
@@ -251,16 +380,20 @@ Run one bounded coding task in an isolated process and normalize its lifecycle.
 
 ### Acceptance tests
 
-1. A fixture coding task edits only the allowed workspace.
-2. Events are streamed in order with task and run correlation IDs.
-3. Successful completion returns result and artifact digests.
-4. Timeout terminates the child process and reports a classified failure.
-5. Cancel terminates the entire process tree and is idempotent.
-6. Agent Host restart marks or recovers orphaned runs deterministically.
-7. Attempts to access a disallowed path are blocked and audited.
-8. Secrets not explicitly allowlisted are absent from the child environment.
-9. CLI version mismatch fails clearly instead of silently parsing wrong output.
-10. A real OMP smoke scenario completes in a disposable test repository.
+1. An altered, stale, unsupported, or over-budget envelope is rejected before a
+   child process starts.
+2. A fixture coding task uses the exact AgentProfileVersion and edits only the
+   allowed workspace.
+3. Events are streamed in order with project, goal, task, profile, and run
+   correlation IDs.
+4. Successful completion returns result and artifact digests.
+5. Timeout terminates the child process and reports a classified failure.
+6. Cancel terminates the entire process tree and is idempotent.
+7. Agent Host restart marks or recovers orphaned runs deterministically.
+8. Attempts to access a disallowed path are blocked and audited.
+9. Secrets not explicitly allowlisted are absent from the child environment.
+10. CLI version mismatch fails clearly instead of silently parsing wrong output.
+11. A real OMP smoke scenario completes in a disposable test repository.
 
 ### Return to development when
 
@@ -278,8 +411,8 @@ Provide each model or coding agent only the context required for its task.
 
 ### Deliverables
 
-- ContextRequest and immutable ContextManifest;
-- explicit source scopes;
+- ContextRequest derived from ApprovedExecutionSpec and immutable ContextManifest;
+- explicit Project, GoalRevision, profile, repository, and artifact scopes;
 - retrieval and ranking strategy;
 - trust and access labels;
 - provider-aware token counting;
@@ -320,6 +453,7 @@ Independently verify agent results and allow only finite, evidence-based repair.
 - VerifierPort;
 - deterministic command verifier;
 - optional reviewer model profile;
+- automated EvaluationRun support for ChangeProposals and profile candidates;
 - evidence bundle;
 - bounded repair policy;
 - NEEDS_REVISION transition and failure reasons;
@@ -357,6 +491,9 @@ operable from one UI.
 - trace correlation through task_id, plan_id, and run_id;
 - structured redacted logs;
 - latency, token, cost, failure, retry, and queue metrics;
+- Project and Goal hierarchy, status, budget, and evidence views;
+- AgentProfile version, candidate, promotion, and rollback views;
+- ChangeProposal and evaluation comparison views;
 - task list and state filters;
 - task detail timeline;
 - plan approval and rejection controls;
@@ -417,14 +554,18 @@ provider-switch scenarios.
 10. Provider switch preserves task and context scope.
 11. Telemetry exporter outage does not lose canonical task state.
 12. Disallowed workspace access is blocked and audited.
-13. Duplicate submit, approve, cancel, and retry commands remain idempotent.
-14. Fresh clone can run bootstrap, verify, and demo from documentation alone.
+13. Duplicate Project, Goal, promotion, rollback, submit, approve, cancel, and
+    retry commands remain idempotent.
+14. Profile promotion does not change a historical Run, and rollback restores an
+    eligible version without deleting evidence.
+15. A SYSTEM Project Goal produces a fully scoped, approved, verified task.
+16. Fresh clone can run bootstrap, verify, and demo from documentation alone.
 
 ### Release gate
 
 The MVP can be released only when:
 
-- every M0-M9 issue is closed with evidence;
+- every M0-M4, M4.1, M4.5, and M5-M9 issue is closed with evidence;
 - all deterministic tests pass on the protected branch;
 - live smoke tests pass for two provider families and OMP;
 - there are no critical or high unaccepted security findings;
@@ -437,7 +578,7 @@ The MVP can be released only when:
 Any release gate is missing, flaky, bypassed, or supported only by a
 natural-language claim.
 
-## 4. Post-MVP order
+## 6. Post-MVP order
 
 Only after M9:
 
