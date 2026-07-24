@@ -43,6 +43,13 @@ class TaskRepository(Protocol):
 
     def record_approval(self, approval: Approval) -> Approval: ...
 
+    def get_approval_for_plan(
+        self,
+        plan_id: PlanId,
+        *,
+        plan_version: int,
+    ) -> Approval | None: ...
+
     def create_run(self, run: Run) -> Run: ...
 
     def get_run(self, run_id: RunId) -> Run: ...
