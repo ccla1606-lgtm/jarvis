@@ -10,11 +10,39 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from psycopg.conninfo import make_conninfo
 
-from jarvis.graph.contracts import BrainBudget
+from jarvis.domain.ids import TaskId
+from jarvis.graph.contracts import ApprovalSignal, BrainBudget, BrainRequest, BrainResult
 from jarvis.graph.runtime import LangGraphBrainRuntime
 from jarvis.infrastructure.migrations import validate_schema_name
 from jarvis.models.ports import ModelPort
 from jarvis.ports.task_repository import TaskRepository
+
+
+class BrainRuntimeHandle:
+    """Lifecycle-safe proxy used by HTTP handlers while the app owns the runtime."""
+
+    def __init__(self) -> None:
+        self._runtime: LangGraphBrainRuntime | None = None
+
+    def bind(self, runtime: LangGraphBrainRuntime) -> None:
+        self._runtime = runtime
+
+    def clear(self) -> None:
+        self._runtime = None
+
+    async def run(self, request: BrainRequest) -> BrainResult:
+        return await self._require_runtime().run(request)
+
+    async def resume(self, task_id: TaskId, signal: ApprovalSignal) -> BrainResult:
+        return await self._require_runtime().resume(task_id, signal)
+
+    def mermaid(self) -> str:
+        return self._require_runtime().mermaid()
+
+    def _require_runtime(self) -> LangGraphBrainRuntime:
+        if self._runtime is None:
+            raise RuntimeError("brain runtime is not started")
+        return self._runtime
 
 
 @asynccontextmanager
