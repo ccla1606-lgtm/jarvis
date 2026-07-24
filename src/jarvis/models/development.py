@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from jarvis.models.contracts import ModelMessage, ModelRequest, ModelUsage
-from jarvis.models.policy import OPENAI_CAPABILITIES, ModelCandidate
+from jarvis.models.policy import ModelCandidate, OPENAI_CAPABILITIES
 from jarvis.models.ports import ProviderResult, ProviderStreamEvent
 
 
