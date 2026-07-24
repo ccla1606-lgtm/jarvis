@@ -157,8 +157,7 @@ class InMemoryTaskRepository:
                 (
                     approval
                     for approval in self._approvals.values()
-                    if approval.plan_id == plan_id
-                    and approval.plan_version == plan_version
+                    if approval.plan_id == plan_id and approval.plan_version == plan_version
                 ),
                 None,
             )
