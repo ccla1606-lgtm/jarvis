@@ -143,7 +143,7 @@ def create_task_router(
             actor=actor,
             reason=body.reason,
         )
-        if brain_runtime is not None:
+        if brain_runtime is not None and not result.replayed:
             await brain_runtime.resume(
                 task_key,
                 ApprovalSignal(PlanId(body.plan_id), body.plan_version, True),
@@ -173,7 +173,7 @@ def create_task_router(
             actor=actor,
             reason=body.reason,
         )
-        if brain_runtime is not None:
+        if brain_runtime is not None and not result.replayed:
             await brain_runtime.resume(
                 task_key,
                 ApprovalSignal(PlanId(body.plan_id), body.plan_version, False),
