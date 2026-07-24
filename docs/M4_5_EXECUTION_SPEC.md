@@ -478,10 +478,10 @@ M5 handoff only when:
    Goal scope and an eligible AgentProfileVersion;
 4. an omitted fast read-only scope resolves to persisted built-in versions;
 5. the exact approved scope can be reconstructed after process restart;
-5. a recording executor receives the expected envelope and rejects mutation;
-6. controlled promotion and rollback preserve historical Runs;
-7. OpenAPI, web fixtures, documentation, `make verify`, and `make demo` agree;
-8. the evidence packet contains commands, results, migration version, known
+6. a recording executor receives the expected envelope and rejects mutation;
+7. controlled promotion and rollback preserve historical Runs;
+8. OpenAPI, web fixtures, documentation, `make verify`, and `make demo` agree;
+9. the evidence packet contains commands, results, migration version, known
    limitations, and remaining release blockers.
 
 M5 may start when M4.5 is implemented and its deterministic evidence is complete.
