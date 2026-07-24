@@ -83,7 +83,10 @@ M4.1 is not complete if the demo only checks RECEIVED, if create_app() uses a nu
 1. PostgreSQL owns every canonical entity, version, transition, and digest.
 2. A side-effecting or planned Task created after M4.5 must reference one active
    Goal and its current immutable GoalRevision.
-3. A fast, read-only answer may be unscoped; it cannot create a Run or side effect.
+3. The API may omit explicit scope only for a fast read-only request. The
+   application resolves it to the versioned built-in Personal Project, Inbox
+   GoalRevision, and assistant AgentProfileVersion; new canonical Tasks never
+   store null direction or behavior.
 4. A Goal revision never changes in place. Editing direction creates the next
    revision and does not alter already approved Tasks.
 5. An AgentProfileVersion never changes in place after creation.
@@ -128,7 +131,11 @@ Rules:
 - new Goals can be created only in an ACTIVE Project;
 - PAUSED prevents new Task approval but preserves queries;
 - ARCHIVED is terminal and preserves all history;
-- Project mission edits use optimistic concurrency and are audited.
+- Project mission edits use optimistic concurrency and are audited;
+- an idempotent OperatorBootstrap use case creates the built-in Personal WORK
+  Project, Inbox Goal, assistant profile, and initial immutable versions;
+- built-in records obey ordinary versioning and audit rules and are not hidden
+  configuration.
 
 ### 5.2 Goal and GoalRevision
 
@@ -341,6 +348,8 @@ Exit evidence:
 
 - migration from the current M4 schema succeeds;
 - migration from empty succeeds;
+- OperatorBootstrap is idempotent under concurrent startup and creates exactly
+  one Personal/Inbox/default-profile set;
 - restart and re-read preserve every digest and transition;
 - concurrent promotion has one winner and one classified conflict;
 - rollback leaves no partial rows;
@@ -357,8 +366,9 @@ Actions:
 2. implement profile version drafting, candidacy, promotion, rejection, and
    rollback;
 3. implement proposal and evidence commands;
-4. require active Goal scope for new planned or side-effecting Tasks;
-5. allow unscoped fast read-only requests only;
+4. require explicit active Goal scope for new planned or side-effecting Tasks;
+5. resolve omitted fast read-only scope through OperatorBootstrap defaults and
+   persist the resolved versions;
 6. implement ApprovedExecutionSpec creation and approval invalidation;
 7. keep all commands transactional and idempotent.
 
@@ -464,9 +474,10 @@ M5 handoff only when:
    ExecutionEnvelope, ChangeProposal, and EvaluationEvidence are durable;
 2. all versioned transitions, idempotency, concurrency, migration, restart, and
    tamper tests pass;
-3. a planned side-effecting Task cannot be approved without active Goal scope and
-   an eligible AgentProfileVersion;
-4. the exact approved scope can be reconstructed after process restart;
+3. a planned side-effecting Task cannot be approved without explicit active
+   Goal scope and an eligible AgentProfileVersion;
+4. an omitted fast read-only scope resolves to persisted built-in versions;
+5. the exact approved scope can be reconstructed after process restart;
 5. a recording executor receives the expected envelope and rejects mutation;
 6. controlled promotion and rollback preserve historical Runs;
 7. OpenAPI, web fixtures, documentation, `make verify`, and `make demo` agree;
