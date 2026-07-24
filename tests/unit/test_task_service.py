@@ -128,9 +128,7 @@ def test_retry_replay_returns_original_attempt() -> None:
         actor="executor",
         reason="failed",
     )
-    failed = repository.create_run(
-        Run.queue(task_id=task.id).with_status(RunStatus.FAILED)
-    )
+    failed = repository.create_run(Run.queue(task_id=task.id).with_status(RunStatus.FAILED))
 
     first = service.retry_task(
         task.id,
